@@ -20,14 +20,13 @@ function LoginForm() {
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
+  async function doLogin(loginEmail: string, loginPassword: string) {
     setErr("");
     setLoading(true);
     const res = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email: loginEmail, password: loginPassword }),
     });
     setLoading(false);
     if (!res.ok) {
@@ -39,9 +38,15 @@ function LoginForm() {
     router.refresh();
   }
 
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    doLogin(email, password);
+  }
+
   const quick = (e: string, p: string) => {
     setEmail(e);
     setPassword(p);
+    doLogin(e, p);
   };
 
   return (
@@ -112,13 +117,16 @@ function LoginForm() {
             </form>
 
             <div className="mt-6 pt-5 border-t border-sumi/10">
-              <p className="text-xs text-sumi/50 mb-2">Akun demo — klik untuk isi otomatis:</p>
+              <p className="text-xs text-sumi/50 mb-2">Pintasan login — klik untuk langsung masuk:</p>
               <div className="grid grid-cols-1 gap-2">
-                <button onClick={() => quick("owner@nashi.id", "owner123")} className="text-left rounded-lg border border-sumi/10 px-3 py-2 text-xs hover:border-shu/40 hover:bg-shu/5 transition">
+                <button type="button" disabled={loading} onClick={() => quick("owner@nashi.id", "owner123")} className="text-left rounded-lg border border-sumi/10 px-3 py-2 text-xs hover:border-shu/40 hover:bg-shu/5 transition disabled:opacity-50">
                   <span className="font-bold text-sumi">Owner</span> · owner@nashi.id / owner123
                 </button>
-                <button onClick={() => quick("kasir1@nashi.id", "kasir123")} className="text-left rounded-lg border border-sumi/10 px-3 py-2 text-xs hover:border-shu/40 hover:bg-shu/5 transition">
+                <button type="button" disabled={loading} onClick={() => quick("kasir1@nashi.id", "kasir123")} className="text-left rounded-lg border border-sumi/10 px-3 py-2 text-xs hover:border-shu/40 hover:bg-shu/5 transition disabled:opacity-50">
                   <span className="font-bold text-sumi">Kasir Malioboro</span> · kasir1@nashi.id / kasir123
+                </button>
+                <button type="button" disabled={loading} onClick={() => quick("kasir2@nashi.id", "kasir123")} className="text-left rounded-lg border border-sumi/10 px-3 py-2 text-xs hover:border-shu/40 hover:bg-shu/5 transition disabled:opacity-50">
+                  <span className="font-bold text-sumi">Kasir Seturan</span> · kasir2@nashi.id / kasir123
                 </button>
               </div>
             </div>

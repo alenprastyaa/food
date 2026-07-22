@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import clsx from "clsx";
 import { usePoll, fileToDataUrl } from "@/lib/hooks";
 import { MessageBubble, Msg } from "@/components/chat";
@@ -39,7 +40,9 @@ const QUICK = [
 ];
 
 export default function ChatManager({ role }: { role: string }) {
-  const [selected, setSelected] = useState<string | null>(null);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const selected = searchParams.get("id");
   const [q, setQ] = useState("");
   const [text, setText] = useState("");
   const [composerOpen, setComposerOpen] = useState(false);
@@ -52,8 +55,18 @@ export default function ChatManager({ role }: { role: string }) {
   const conversations = listData?.conversations ?? [];
   const active = activeData?.conversation;
 
+  // Auto-buka percakapan pertama hanya sekali saat halaman pertama kali dimuat —
+  // tidak boleh berjalan ulang tiap kali `selected` kosong, atau tombol back jadi tak berefek
+  // (balik ke daftar langsung "dibajak" kembali ke percakapan pertama).
+  const didAutoSelect = useRef(false);
   useEffect(() => {
-    if (!selected && conversations.length > 0) setSelected(conversations[0].id);
+    if (didAutoSelect.current) return;
+    if (selected) { didAutoSelect.current = true; return; }
+    if (conversations.length > 0) {
+      didAutoSelect.current = true;
+      router.replace(`/dashboard/chats?id=${conversations[0].id}`);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversations, selected]);
 
   useEffect(() => {
@@ -108,7 +121,7 @@ export default function ChatManager({ role }: { role: string }) {
             return (
               <button
                 key={c.id}
-                onClick={() => setSelected(c.id)}
+                onClick={() => router.push(`/dashboard/chats?id=${c.id}`)}
                 className={clsx(
                   "w-full text-left px-4 py-3 border-b border-sumi/5 hover:bg-washi/60 transition flex gap-3",
                   selected === c.id && "bg-shu/5 border-l-2 border-l-shu"
@@ -147,7 +160,7 @@ export default function ChatManager({ role }: { role: string }) {
           <>
             {/* header */}
             <div className="bg-paper border-b border-sumi/10 px-4 py-3 flex items-center gap-3">
-              <button onClick={() => setSelected(null)} className="lg:hidden text-xl text-sumi/60">‹</button>
+              <button onClick={() => router.push("/dashboard/chats")} className="lg:hidden text-xl text-sumi/60">‹</button>
               <span className="hanko h-10 w-10 text-sm shrink-0">{active.buyerName.charAt(0)}</span>
               <div className="min-w-0 flex-1">
                 <p className="font-round font-bold text-sm truncate">{active.buyerName}</p>

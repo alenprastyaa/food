@@ -17,6 +17,7 @@ const NAV: NavItem[] = [
   { href: "/dashboard/outlets", label: "Outlet", jp: "店舗", icon: "🏮", owner: true },
   { href: "/dashboard/cashiers", label: "Kasir", jp: "スタッフ", icon: "👤", owner: true },
   { href: "/dashboard/qris", label: "QRIS", jp: "支払", icon: "🏧", owner: true },
+  { href: "/dashboard/settings", label: "Setting", jp: "設定", icon: "⚙️", owner: true },
 ];
 
 export default function Sidebar({ user }: { user: { name: string; role: string; outletName?: string } }) {

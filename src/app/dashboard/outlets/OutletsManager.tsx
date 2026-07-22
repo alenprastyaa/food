@@ -89,8 +89,27 @@ function OutletForm({ outlet, onClose, onSaved }: { outlet: Outlet | null; onClo
     longitude: outlet?.longitude?.toString() ?? "",
   });
   const [saving, setSaving] = useState(false);
+  const [locating, setLocating] = useState(false);
   const [err, setErr] = useState("");
   const set = (k: string, v: string) => setF((p) => ({ ...p, [k]: v }));
+
+  function useCurrentLocation() {
+    if (!navigator.geolocation) return setErr("Browser tidak mendukung geolokasi.");
+    setErr("");
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        set("latitude", pos.coords.latitude.toString());
+        set("longitude", pos.coords.longitude.toString());
+        setLocating(false);
+      },
+      () => {
+        setErr("Gagal mengambil lokasi. Izinkan akses lokasi di browser, atau isi manual.");
+        setLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }
 
   async function save() {
     setErr("");
@@ -112,6 +131,14 @@ function OutletForm({ outlet, onClose, onSaved }: { outlet: Outlet | null; onClo
           <F label="Nama Outlet"><input value={f.name} onChange={(e) => set("name", e.target.value)} className="in" placeholder="Nashi Katsu — Cabang" /></F>
           <F label="Telepon"><input value={f.phone} onChange={(e) => set("phone", e.target.value)} className="in" placeholder="0812-…" /></F>
           <F label="Alamat"><textarea value={f.address} onChange={(e) => set("address", e.target.value)} rows={2} className="in" /></F>
+          <button
+            type="button"
+            onClick={useCurrentLocation}
+            disabled={locating}
+            className="w-full text-sm font-round font-bold text-shu bg-shu/10 rounded-xl py-2.5 hover:bg-shu/20 transition disabled:opacity-50"
+          >
+            {locating ? "Mengambil lokasi…" : "📍 Gunakan Lokasi Saat Ini"}
+          </button>
           <div className="grid grid-cols-2 gap-3">
             <F label="Latitude"><input value={f.latitude} onChange={(e) => set("latitude", e.target.value)} className="in" placeholder="-7.79" /></F>
             <F label="Longitude"><input value={f.longitude} onChange={(e) => set("longitude", e.target.value)} className="in" placeholder="110.36" /></F>

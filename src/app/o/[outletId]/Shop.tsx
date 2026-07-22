@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button, MenuImage, Logo } from "@/components/ui";
 import { rupiah } from "@/lib/format";
@@ -18,6 +18,7 @@ export default function Shop({
   categories: string[];
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const cart = useCart(outlet.id);
   const [cat, setCat] = useState(categories[0] ?? "");
   const [cartOpen, setCartOpen] = useState(false);
@@ -27,6 +28,18 @@ export default function Shop({
   const menuMap = useMemo(() => new Map(menus.map((m) => [m.id, m])), [menus]);
   const subtotal = cart.items.reduce((s, l) => s + (menuMap.get(l.menuId)?.price ?? 0) * l.qty, 0);
   const filtered = menus.filter((m) => m.category === cat);
+
+  useEffect(() => {
+    const add = searchParams.get("add");
+    if (!add || !cart.hydrated) return;
+    const menu = menuMap.get(add);
+    if (!menu) return;
+    cart.setQty(add, 1);
+    setCat(menu.category);
+    setCartOpen(true);
+    router.replace(`/o/${outlet.id}`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, cart.hydrated, menuMap]);
 
   return (
     <div className="space-y-4 pb-24">
@@ -67,7 +80,7 @@ export default function Shop({
           const qty = cart.lines[m.id]?.qty ?? 0;
           return (
             <div key={m.id} className="paper-card rounded-2xl overflow-hidden flex flex-col min-w-0">
-              <MenuImage image={m.image} category={m.category} className="h-28 w-full" />
+              <MenuImage image={m.image} category={m.category} className="aspect-square w-full" />
               <div className="p-3 flex flex-col flex-1">
                 <p className="font-round font-bold text-sm text-sumi leading-snug line-clamp-2">{m.name}</p>
                 <p className="text-[11px] text-sumi/40 line-clamp-2 mt-0.5 flex-1">{m.description}</p>

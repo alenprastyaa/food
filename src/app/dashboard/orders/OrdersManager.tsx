@@ -2,9 +2,10 @@
 import { useMemo, useState } from "react";
 import { usePoll } from "@/lib/hooks";
 import { rupiah, timeAgo, ORDER_STATUS } from "@/lib/format";
-import { StatusBadge } from "@/components/ui";
+import { Button, StatusBadge } from "@/components/ui";
 import { PageHeader, EmptyState } from "@/components/dash";
 import OrderDrawer, { FullOrder } from "@/components/OrderDrawer";
+import WalkInOrderForm from "./WalkInOrderForm";
 
 const FILTERS: { key: string; label: string; statuses: string[] | null }[] = [
   { key: "all", label: "Semua", statuses: null },
@@ -15,9 +16,10 @@ const FILTERS: { key: string; label: string; statuses: string[] | null }[] = [
   { key: "cancel", label: "Batal", statuses: ["CANCELLED"] },
 ];
 
-export default function OrdersManager({ role }: { role: string }) {
+export default function OrdersManager({ role, outlets }: { role: string; outlets: { id: string; name: string }[] }) {
   const [filter, setFilter] = useState("all");
   const [selected, setSelected] = useState<string | null>(null);
+  const [walkInOpen, setWalkInOpen] = useState(false);
   const { data, reload } = usePoll<{ orders: FullOrder[] }>("/api/orders", 4000);
   const orders = data?.orders ?? [];
 
@@ -38,7 +40,10 @@ export default function OrdersManager({ role }: { role: string }) {
   return (
     <div>
       <PageHeader title="Order" jp="注文" subtitle="Kelola pesanan & verifikasi pembayaran">
-        <span className="text-sm text-sumi/50">{orders.length} total</span>
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-sumi/50">{orders.length} total</span>
+          {outlets.length > 0 && <Button onClick={() => setWalkInOpen(true)} className="py-2">+ Order Walk-in</Button>}
+        </div>
       </PageHeader>
 
       <div className="p-5 lg:p-8">
@@ -96,6 +101,13 @@ export default function OrdersManager({ role }: { role: string }) {
       </div>
 
       {active && <OrderDrawer order={active} onClose={() => setSelected(null)} onChanged={reload} />}
+      {walkInOpen && (
+        <WalkInOrderForm
+          outlets={outlets}
+          onClose={() => setWalkInOpen(false)}
+          onCreated={() => { setWalkInOpen(false); reload(); }}
+        />
+      )}
     </div>
   );
 }

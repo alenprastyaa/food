@@ -7,7 +7,7 @@ export async function GET() {
   if (!session) return bad("Belum masuk.", 401);
 
   const orders = await prisma.order.findMany({
-    where: { buyerId: session.id },
+    where: { OR: [{ buyerId: session.id }, { buyerId: null, buyerPhone: session.phone }] },
     include: { items: true, outlet: { select: { name: true } } },
     orderBy: { createdAt: "desc" },
     take: 30,

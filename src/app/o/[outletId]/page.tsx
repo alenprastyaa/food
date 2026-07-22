@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
@@ -42,7 +43,9 @@ export default async function OutletPage({ params }: { params: Promise<{ outletI
             )}
           </div>
         </div>
-        <Shop outlet={{ id: outlet.id, name: outlet.name, address: outlet.address, phone: outlet.phone }} menus={outlet.menus} categories={categories} />
+        <Suspense>
+          <Shop outlet={{ id: outlet.id, name: outlet.name, address: outlet.address, phone: outlet.phone }} menus={outlet.menus} categories={categories} />
+        </Suspense>
       </div>
     </div>
   );

@@ -33,23 +33,50 @@ export async function POST(req: Request) {
 
   const subtotal = orderItems.reduce((s, i) => s + i.subtotal, 0);
   const buyerSession = await getBuyerSession();
+  const buyerNameClean = String(buyerName).trim();
+  const buyerPhoneClean = String(buyerPhone).trim();
 
-  const conv = await prisma.conversation.create({
-    data: {
+  // satu pembeli = satu percakapan berjalan per outlet — lanjutkan yang sudah ada, jangan duplikat
+  const existing = await prisma.conversation.findFirst({
+    where: {
       outletId,
-      buyerId: buyerSession?.id ?? null,
-      buyerName: String(buyerName).trim(),
-      buyerPhone: String(buyerPhone).trim(),
-      status: "OPEN",
-      lastMessage: "Checkout dari menu",
-      messages: {
-        create: [
-          { sender: "system", type: "system", content: `${String(buyerName).trim()} checkout dari menu ${outlet.name}.` },
-          { sender: "cashier", type: "text", content: `Halo ${String(buyerName).trim()}! Terima kasih sudah order 🌸 Order kamu langsung kami proses ya, silakan review & lanjut ke pembayaran.` },
-        ],
-      },
+      status: { not: "CLOSED" },
+      OR: [...(buyerSession?.id ? [{ buyerId: buyerSession.id }] : []), { buyerPhone: buyerPhoneClean }],
     },
+    orderBy: { updatedAt: "desc" },
   });
+
+  const conv = existing
+    ? await prisma.conversation.update({
+        where: { id: existing.id },
+        data: {
+          buyerId: buyerSession?.id ?? existing.buyerId,
+          status: "OPEN",
+          lastMessage: "Checkout dari menu",
+          messages: {
+            create: [
+              { sender: "system", type: "system", content: `${buyerNameClean} checkout dari menu ${outlet.name}.` },
+              { sender: "cashier", type: "text", content: `Halo ${buyerNameClean}! Terima kasih sudah order 🌸 Order kamu langsung kami proses ya, silakan review & lanjut ke pembayaran.` },
+            ],
+          },
+        },
+      })
+    : await prisma.conversation.create({
+        data: {
+          outletId,
+          buyerId: buyerSession?.id ?? null,
+          buyerName: buyerNameClean,
+          buyerPhone: buyerPhoneClean,
+          status: "OPEN",
+          lastMessage: "Checkout dari menu",
+          messages: {
+            create: [
+              { sender: "system", type: "system", content: `${buyerNameClean} checkout dari menu ${outlet.name}.` },
+              { sender: "cashier", type: "text", content: `Halo ${buyerNameClean}! Terima kasih sudah order 🌸 Order kamu langsung kami proses ya, silakan review & lanjut ke pembayaran.` },
+            ],
+          },
+        },
+      });
 
   const order = await prisma.order.create({
     data: {
@@ -57,8 +84,8 @@ export async function POST(req: Request) {
       conversationId: conv.id,
       outletId,
       buyerId: buyerSession?.id ?? null,
-      buyerName: String(buyerName).trim(),
-      buyerPhone: String(buyerPhone).trim(),
+      buyerName: buyerNameClean,
+      buyerPhone: buyerPhoneClean,
       orderType: "TAKEAWAY",
       subtotal,
       total: subtotal,

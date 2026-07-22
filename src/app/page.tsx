@@ -15,9 +15,15 @@ export default async function Landing() {
     orderBy: { price: "asc" },
   });
   const buyer = await getBuyerSession();
+  const setting = await prisma.siteSetting.findUnique({ where: { id: "singleton" } });
 
   return (
     <div className="min-h-screen bg-washi text-sumi overflow-x-hidden">
+      {setting?.isActive && setting.announcement && (
+        <div className="bg-shu text-white text-center text-xs sm:text-sm font-round font-bold px-4 py-2">
+          {setting.announcement}
+        </div>
+      )}
       {/* noren top */}
       <div className="noren h-2 w-full" />
 
@@ -107,14 +113,14 @@ export default async function Landing() {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {featured.map((m) => (
-              <div key={m.id} className="rounded-2xl bg-washi/5 ring-1 ring-washi/10 p-4 hover:bg-washi/10 transition group min-w-0">
-                <MenuImage image={m.image} category={m.category} big className="h-28 w-full rounded-xl mb-3 group-hover:scale-105 transition-transform" />
+              <Link key={m.id} href={outlets[0] ? `/o/${outlets[0].id}?add=${m.id}` : "#outlets"} className="rounded-2xl bg-washi/5 ring-1 ring-washi/10 p-4 hover:bg-washi/10 transition group min-w-0 block">
+                <MenuImage image={m.image} category={m.category} big className="aspect-square w-full rounded-xl mb-3 group-hover:scale-105 transition-transform" />
                 <p className="font-round font-bold text-sm leading-snug">{m.name}</p>
                 <div className="flex items-center justify-between mt-2">
                   <span className="text-xs text-washi/40">{m.category}</span>
                   <span className="price-tag text-xs px-2 py-0.5">{rupiah(m.price)}</span>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
