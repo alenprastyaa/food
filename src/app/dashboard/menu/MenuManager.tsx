@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { rupiah } from "@/lib/format";
 import { Button, MenuImage } from "@/components/ui";
 import { PageHeader, EmptyState } from "@/components/dash";
+import { fileToDataUrl } from "@/lib/hooks";
 
 type Menu = { id: string; name: string; category: string; description: string | null; price: number; image: string | null; isAvailable: boolean; outletId: string };
 type Outlet = { id: string; name: string };
@@ -141,9 +142,27 @@ function MenuForm({ outletId, menu, emojis, cats, onClose, onSaved }: { outletId
             </Field>
             <Field label="Harga (Rp)"><input type="number" value={price || ""} onChange={(e) => setPrice(Number(e.target.value))} className="in" /></Field>
           </div>
-          <Field label="Deskripsi"><textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="in" /></Field>
-          <Field label="Ikon">
-            <div className="flex flex-wrap gap-1.5">
+          <Field label="Foto Menu">
+            <div className="mt-1 flex items-center gap-3">
+              <div className="h-16 w-16 rounded-xl overflow-hidden shrink-0 ring-1 ring-sumi/10">
+                <MenuImage image={image} category={category} className="h-full w-full" />
+              </div>
+              <div className="flex-1 space-y-1.5">
+                <label className="block rounded-lg border border-sumi/15 bg-washi/50 px-3 py-2 text-xs font-round font-bold text-center cursor-pointer hover:border-shu transition">
+                  📤 Unggah Foto Asli
+                  <input type="file" accept="image/*" hidden onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    setImage(await fileToDataUrl(file));
+                  }} />
+                </label>
+                {image?.startsWith("data:") || image?.startsWith("/") || image?.startsWith("http") ? (
+                  <button onClick={() => setImage("🍱")} className="text-[11px] text-sumi/40 hover:text-shu">Hapus foto, pakai ikon</button>
+                ) : null}
+              </div>
+            </div>
+            <p className="text-[11px] text-sumi/40 mt-2">atau pilih ikon:</p>
+            <div className="flex flex-wrap gap-1.5 mt-1">
               {emojis.map((e) => (
                 <button key={e} onClick={() => setImage(e)} className={`h-9 w-9 rounded-lg text-lg grid place-items-center ${image === e ? "bg-shu/15 ring-2 ring-shu" : "bg-washi/60 ring-1 ring-sumi/10"}`}>{e}</button>
               ))}

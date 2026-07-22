@@ -40,9 +40,29 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Buyer account area (separate cookie/session)
+  if (pathname.startsWith("/account") && pathname !== "/account/login" && pathname !== "/account/register") {
+    const buyerToken = req.cookies.get("nashi_buyer")?.value;
+    let buyerSession = null;
+    if (buyerToken) {
+      try {
+        const { payload } = await jwtVerify(buyerToken, secret);
+        buyerSession = payload;
+      } catch {
+        buyerSession = null;
+      }
+    }
+    if (!buyerSession) {
+      const url = req.nextUrl.clone();
+      url.pathname = "/account/login";
+      url.searchParams.set("next", pathname);
+      return NextResponse.redirect(url);
+    }
+  }
+
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/login"],
+  matcher: ["/dashboard/:path*", "/login", "/account/:path*"],
 };

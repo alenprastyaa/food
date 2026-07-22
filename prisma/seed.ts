@@ -1,7 +1,14 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import fs from "fs";
+import path from "path";
 
 const prisma = new PrismaClient();
+
+// real photo paths sourced from Wikimedia Commons (scripts/fetch-photos.mjs), keyed by dish
+const manifestPath = path.join(__dirname, "..", "scripts", "photo-manifest.json");
+const photoManifest: Record<string, string> = fs.existsSync(manifestPath) ? JSON.parse(fs.readFileSync(manifestPath, "utf8")) : {};
+const photo = (key: string, fallbackEmoji: string) => photoManifest[key] ?? fallbackEmoji;
 
 // A simple, real-looking static QRIS placeholder (SVG data URI)
 const qrisSvg = (label: string) => {
@@ -28,32 +35,32 @@ const qrisSvg = (label: string) => {
 
 const MENU = [
   // Katsu
-  { name: "Chicken / Dori Katsu Happy", category: "Katsu", price: 14000, image: "🍤", desc: "Katsu ayam / dori krispi di atas nasi hangat. Menu paling hemat." },
-  { name: "Chicken / Dori Katsu Sambal Matah / Geprek", category: "Katsu", price: 19000, image: "🌶️", desc: "Katsu disiram sambal matah segar atau digeprek pedas nampol." },
-  { name: "Chic / Dori Katsu", category: "Katsu", price: 11000, image: "🍗", desc: "Potongan katsu ayam / dori tanpa nasi. Cocok jadi lauk." },
+  { name: "Chicken / Dori Katsu Happy", category: "Katsu", price: 14000, image: photo("katsu-happy", "🍤"), desc: "Katsu ayam / dori krispi di atas nasi hangat. Menu paling hemat." },
+  { name: "Chicken / Dori Katsu Sambal Matah / Geprek", category: "Katsu", price: 19000, image: photo("katsu-sambal", "🌶️"), desc: "Katsu disiram sambal matah segar atau digeprek pedas nampol." },
+  { name: "Chic / Dori Katsu", category: "Katsu", price: 11000, image: photo("katsu-plain", "🍗"), desc: "Potongan katsu ayam / dori tanpa nasi. Cocok jadi lauk." },
   // Donburi
-  { name: "Chicken Teriyaki Donburi", category: "Donburi", price: 20000, image: "🍱", desc: "Ayam teriyaki manis gurih di atas nasi Jepang." },
-  { name: "Chic / Dori Katsu Curry Donburi", category: "Donburi", price: 21000, image: "🍛", desc: "Katsu disiram kari Jepang kental ala Hokkaido." },
-  { name: "Hokkaido Dori / Chic Katsu Donburi", category: "Donburi", price: 21000, image: "🍥", desc: "Signature donburi dengan saus creamy khas Hokkaido." },
-  { name: "Chicken / Dori Katsu Donburi", category: "Donburi", price: 20000, image: "🍚", desc: "Donburi katsu klasik dengan saus tonkatsu." },
-  { name: "Chicken Popcorn Sweet Chili Oil", category: "Donburi", price: 20000, image: "🍿", desc: "Popcorn chicken dengan sweet chili oil yang menggoda." },
-  { name: "Chicken Egg Roll Donburi", category: "Donburi", price: 18000, image: "🥚", desc: "Egg roll gulung lembut dipadu ayam di atas nasi." },
-  { name: "Chicken Popcorn Spicy Bbq", category: "Donburi", price: 17000, image: "🔥", desc: "Popcorn chicken bumbu BBQ pedas manis." },
-  { name: "Chicken Karage Donburi", category: "Donburi", price: 20000, image: "🍗", desc: "Karaage juicy renyah di atas nasi hangat." },
-  { name: "Shrimp Roll Donburi", category: "Donburi", price: 18000, image: "🍤", desc: "Shrimp roll krispi dengan mayo spesial." },
+  { name: "Chicken Teriyaki Donburi", category: "Donburi", price: 20000, image: photo("teriyaki-donburi", "🍱"), desc: "Ayam teriyaki manis gurih di atas nasi Jepang." },
+  { name: "Chic / Dori Katsu Curry Donburi", category: "Donburi", price: 21000, image: photo("curry-donburi", "🍛"), desc: "Katsu disiram kari Jepang kental ala Hokkaido." },
+  { name: "Hokkaido Dori / Chic Katsu Donburi", category: "Donburi", price: 21000, image: photo("hokkaido-donburi", "🍥"), desc: "Signature donburi dengan saus creamy khas Hokkaido." },
+  { name: "Chicken / Dori Katsu Donburi", category: "Donburi", price: 20000, image: photo("katsu-donburi", "🍚"), desc: "Donburi katsu klasik dengan saus tonkatsu." },
+  { name: "Chicken Popcorn Sweet Chili Oil", category: "Donburi", price: 20000, image: photo("popcorn-sweetchili", "🍿"), desc: "Popcorn chicken dengan sweet chili oil yang menggoda." },
+  { name: "Chicken Egg Roll Donburi", category: "Donburi", price: 18000, image: photo("eggroll-donburi", "🥚"), desc: "Egg roll gulung lembut dipadu ayam di atas nasi." },
+  { name: "Chicken Popcorn Spicy Bbq", category: "Donburi", price: 17000, image: photo("popcorn-bbq", "🔥"), desc: "Popcorn chicken bumbu BBQ pedas manis." },
+  { name: "Chicken Karage Donburi", category: "Donburi", price: 20000, image: photo("karage-donburi", "🍗"), desc: "Karaage juicy renyah di atas nasi hangat." },
+  { name: "Shrimp Roll Donburi", category: "Donburi", price: 18000, image: photo("shrimp-donburi", "🍤"), desc: "Shrimp roll krispi dengan mayo spesial." },
   // Snack
-  { name: "Chic Skin", category: "Snack", price: 8000, image: "🍘", desc: "Kulit ayam krispi gurih, cemilan wajib." },
-  { name: "Shrimp Roll", category: "Snack", price: 15000, image: "🍤", desc: "Gulungan udang renyah isi 5." },
-  { name: "Egg Chic Roll", category: "Snack", price: 15000, image: "🥚", desc: "Egg roll isi ayam, lembut di dalam garing di luar." },
-  { name: "Mix Chic & Shrimp", category: "Snack", price: 16000, image: "🍢", desc: "Kombinasi ayam & udang dalam satu porsi." },
-  { name: "Skin Gyoza Bbq / Keju", category: "Snack", price: 5000, image: "🥟", desc: "Kulit gyoza renyah rasa BBQ atau keju." },
-  { name: "Takoyaki Ball", category: "Snack", price: 15000, image: "🐙", desc: "Takoyaki isi gurita dengan katsuobushi menari." },
-  { name: "Gyoza Fried", category: "Snack", price: 15000, image: "🥟", desc: "Gyoza goreng isi ayam, garing sempurna." },
-  { name: "Chicken Karage", category: "Snack", price: 16000, image: "🍗", desc: "Karaage ayam tanpa nasi, isi banyak." },
+  { name: "Chic Skin", category: "Snack", price: 8000, image: photo("chicskin", "🍘"), desc: "Kulit ayam krispi gurih, cemilan wajib." },
+  { name: "Shrimp Roll", category: "Snack", price: 15000, image: photo("shrimproll", "🍤"), desc: "Gulungan udang renyah isi 5." },
+  { name: "Egg Chic Roll", category: "Snack", price: 15000, image: photo("eggroll", "🥚"), desc: "Egg roll isi ayam, lembut di dalam garing di luar." },
+  { name: "Mix Chic & Shrimp", category: "Snack", price: 16000, image: photo("mixsnack", "🍢"), desc: "Kombinasi ayam & udang dalam satu porsi." },
+  { name: "Skin Gyoza Bbq / Keju", category: "Snack", price: 5000, image: photo("gyozabbq", "🥟"), desc: "Kulit gyoza renyah rasa BBQ atau keju." },
+  { name: "Takoyaki Ball", category: "Snack", price: 15000, image: photo("takoyaki", "🐙"), desc: "Takoyaki isi gurita dengan katsuobushi menari." },
+  { name: "Gyoza Fried", category: "Snack", price: 15000, image: photo("gyozafried", "🥟"), desc: "Gyoza goreng isi ayam, garing sempurna." },
+  { name: "Chicken Karage", category: "Snack", price: 16000, image: photo("karage", "🍗"), desc: "Karaage ayam tanpa nasi, isi banyak." },
   // Drink
-  { name: "Teh Ocha", category: "Drink", price: 3000, image: "🍵", desc: "Ocha hangat/dingin menyegarkan." },
+  { name: "Teh Ocha", category: "Drink", price: 3000, image: photo("ocha", "🍵"), desc: "Ocha hangat/dingin menyegarkan." },
   // Extra
-  { name: "Extra Saus / Sambal / Telor", category: "Extra", price: 4000, image: "🍳", desc: "Tambahan saus, sambal, atau telur." },
+  { name: "Extra Saus / Sambal / Telor", category: "Extra", price: 4000, image: photo("extra", "🍳"), desc: "Tambahan saus, sambal, atau telur." },
 ];
 
 async function main() {

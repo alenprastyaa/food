@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Logo, Button, MenuImage } from "@/components/ui";
 import { rupiah } from "@/lib/format";
+import { getBuyerSession } from "@/lib/buyerAuth";
 import Petals from "@/components/Petals";
 
 export const dynamic = "force-dynamic";
@@ -13,6 +14,7 @@ export default async function Landing() {
     take: 6,
     orderBy: { price: "asc" },
   });
+  const buyer = await getBuyerSession();
 
   return (
     <div className="min-h-screen bg-washi text-sumi overflow-x-hidden">
@@ -26,9 +28,16 @@ export default async function Landing() {
           <div className="flex items-center gap-2">
             <Link href="#menu" className="hidden sm:inline text-sm font-round font-bold text-sumi/70 hover:text-shu px-3 py-2">Menu</Link>
             <Link href="#outlets" className="hidden sm:inline text-sm font-round font-bold text-sumi/70 hover:text-shu px-3 py-2">Outlet</Link>
-            <Link href="/login">
-              <Button variant="outline" className="py-2">Masuk Staff</Button>
-            </Link>
+            {buyer ? (
+              <Link href="/account">
+                <Button variant="outline" className="py-2">👤 {buyer.name.split(" ")[0]}</Button>
+              </Link>
+            ) : (
+              <Link href="/account/login">
+                <Button variant="outline" className="py-2">Masuk / Daftar</Button>
+              </Link>
+            )}
+            <Link href="/login" className="hidden sm:inline text-xs text-sumi/40 hover:text-shu px-2">Staff</Link>
           </div>
         </div>
       </header>
@@ -98,7 +107,7 @@ export default async function Landing() {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {featured.map((m) => (
-              <div key={m.id} className="rounded-2xl bg-washi/5 ring-1 ring-washi/10 p-4 hover:bg-washi/10 transition group">
+              <div key={m.id} className="rounded-2xl bg-washi/5 ring-1 ring-washi/10 p-4 hover:bg-washi/10 transition group min-w-0">
                 <MenuImage image={m.image} category={m.category} big className="h-28 w-full rounded-xl mb-3 group-hover:scale-105 transition-transform" />
                 <p className="font-round font-bold text-sm leading-snug">{m.name}</p>
                 <div className="flex items-center justify-between mt-2">

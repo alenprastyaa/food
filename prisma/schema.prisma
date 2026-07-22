@@ -37,6 +37,19 @@ model User {
   orders Order[]
 }
 
+model Buyer {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String   @unique
+  email     String?  @unique
+  password  String
+  address   String?
+  createdAt DateTime @default(now())
+
+  conversations Conversation[]
+  orders        Order[]
+}
+
 model OutletPayment {
   id        String   @id @default(cuid())
   outletId  String   @unique
@@ -66,6 +79,8 @@ model Conversation {
   id          String   @id @default(cuid())
   outletId    String
   outlet      Outlet   @relation(fields: [outletId], references: [id], onDelete: Cascade)
+  buyerId     String?
+  buyer       Buyer?   @relation(fields: [buyerId], references: [id])
   buyerName   String
   buyerPhone  String
   status      String   @default("OPEN") // OPEN | WAITING | CLOSED
@@ -96,6 +111,8 @@ model Order {
   outlet         Outlet   @relation(fields: [outletId], references: [id], onDelete: Cascade)
   cashierId      String?
   cashier        User?    @relation(fields: [cashierId], references: [id])
+  buyerId        String?
+  buyer          Buyer?   @relation(fields: [buyerId], references: [id])
 
   buyerName  String
   buyerPhone String
