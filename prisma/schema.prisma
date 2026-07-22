@@ -1,0 +1,151 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Outlet {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String
+  address   String
+  latitude  Float?
+  longitude Float?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  users         User[]
+  menus         Menu[]
+  conversations Conversation[]
+  orders        Order[]
+  payment       OutletPayment?
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      String // OWNER | CASHIER
+  outletId  String?
+  outlet    Outlet?  @relation(fields: [outletId], references: [id])
+  createdAt DateTime @default(now())
+
+  orders Order[]
+}
+
+model OutletPayment {
+  id        String   @id @default(cuid())
+  outletId  String   @unique
+  outlet    Outlet   @relation(fields: [outletId], references: [id], onDelete: Cascade)
+  qrisImage String? // path/base64
+  ownerName String
+  notes     String?
+  updatedAt DateTime @updatedAt
+}
+
+model Menu {
+  id          String   @id @default(cuid())
+  outletId    String
+  outlet      Outlet   @relation(fields: [outletId], references: [id], onDelete: Cascade)
+  name        String
+  category    String
+  description String?
+  price       Int
+  image       String?
+  isAvailable Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  orderItems OrderItem[]
+}
+
+model Conversation {
+  id          String   @id @default(cuid())
+  outletId    String
+  outlet      Outlet   @relation(fields: [outletId], references: [id], onDelete: Cascade)
+  buyerName   String
+  buyerPhone  String
+  status      String   @default("OPEN") // OPEN | WAITING | CLOSED
+  lastMessage String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  messages Message[]
+  orders   Order[]
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         String // buyer | cashier | system
+  type           String   @default("text") // text | image | system
+  content        String
+  createdAt      DateTime @default(now())
+}
+
+model Order {
+  id             String   @id @default(cuid())
+  invoiceNumber  String   @unique
+  conversationId String?
+  conversation   Conversation? @relation(fields: [conversationId], references: [id])
+  outletId       String
+  outlet         Outlet   @relation(fields: [outletId], references: [id], onDelete: Cascade)
+  cashierId      String?
+  cashier        User?    @relation(fields: [cashierId], references: [id])
+
+  buyerName  String
+  buyerPhone String
+
+  orderType       String  @default("TAKEAWAY") // TAKEAWAY | DELIVERY
+  deliveryAddress String?
+  latitude        Float?
+  longitude       Float?
+
+  subtotal    Int @default(0)
+  discount    Int @default(0)
+  tax         Int @default(0)
+  deliveryFee Int @default(0)
+  total       Int @default(0)
+
+  status String @default("DRAFT")
+  // DRAFT | WAITING_CONFIRMATION | WAITING_PAYMENT | WAITING_PAYMENT_VERIFICATION
+  // | PAID | QUEUED | COOKING | READY | COMPLETED | CANCELLED
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items   OrderItem[]
+  payment Payment?
+}
+
+model OrderItem {
+  id       String @id @default(cuid())
+  orderId  String
+  order    Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuId   String?
+  menu     Menu?  @relation(fields: [menuId], references: [id])
+  menuName String
+  qty      Int
+  price    Int
+  subtotal Int
+  notes    String?
+}
+
+model Payment {
+  id         String   @id @default(cuid())
+  orderId    String   @unique
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  method     String   @default("QRIS")
+  amount     Int
+  proofImage String?
+  status     String   @default("UNPAID") // UNPAID | WAITING_VERIFICATION | PAID | REJECTED
+  verifiedBy String?
+  verifiedAt DateTime?
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}

@@ -1,0 +1,161 @@
+@import "tailwindcss";
+
+@theme {
+  --color-washi: #f7f1e3;
+  --color-washi-dark: #efe6d2;
+  --color-paper: #fffdf8;
+  --color-sumi: #17282e;
+  --color-sumi-soft: #2c3f45;
+  --color-shu: #d6483f;
+  --color-shu-dark: #b5362f;
+  --color-shu-light: #e7695f;
+  --color-matcha: #6f8a4f;
+  --color-matcha-dark: #566d3d;
+  --color-kin: #c39b3e;
+  --color-kin-light: #e0c574;
+  --color-sakura: #e79aa6;
+  --color-sakura-soft: #f6dfe2;
+  --color-ai: #274754;
+
+  --font-display: var(--font-shippori), serif;
+  --font-round: var(--font-zen), sans-serif;
+  --font-body: var(--font-jakarta), system-ui, sans-serif;
+
+  --radius-xl2: 1.5rem;
+}
+
+:root {
+  --scroll: #d6483f;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-washi);
+  color: var(--color-sumi);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-shu);
+  color: #fff;
+}
+
+/* ---------- Japanese patterns ---------- */
+
+/* Seigaiha — layered waves */
+.bg-seigaiha {
+  background-color: var(--color-washi);
+  background-image: radial-gradient(circle at 50% 100%, transparent 20px, rgba(39, 71, 84, 0.05) 21px, rgba(39, 71, 84, 0.05) 26px, transparent 27px, transparent 44px, rgba(39, 71, 84, 0.05) 45px, rgba(39, 71, 84, 0.05) 50px, transparent 51px);
+  background-size: 60px 30px;
+}
+
+/* Asanoha — hemp leaf, subtle */
+.bg-asanoha {
+  background-color: var(--color-washi);
+  background-image:
+    linear-gradient(30deg, transparent 49.5%, rgba(214, 72, 63, 0.06) 49.5%, rgba(214, 72, 63, 0.06) 50.5%, transparent 50.5%),
+    linear-gradient(150deg, transparent 49.5%, rgba(214, 72, 63, 0.06) 49.5%, rgba(214, 72, 63, 0.06) 50.5%, transparent 50.5%),
+    linear-gradient(90deg, transparent 49.5%, rgba(214, 72, 63, 0.06) 49.5%, rgba(214, 72, 63, 0.06) 50.5%, transparent 50.5%);
+  background-size: 40px 70px;
+}
+
+/* soft dotted washi grain */
+.bg-grain {
+  background-image: radial-gradient(rgba(23, 40, 46, 0.04) 1px, transparent 1px);
+  background-size: 14px 14px;
+}
+
+.paper-card {
+  background: var(--color-paper);
+  border: 1px solid rgba(23, 40, 46, 0.08);
+  box-shadow: 0 1px 2px rgba(23, 40, 46, 0.04), 0 12px 30px -18px rgba(23, 40, 46, 0.25);
+}
+
+/* dashed vermillion tag like the menu price boxes */
+.price-tag {
+  display: inline-flex;
+  align-items: center;
+  background: var(--color-shu);
+  color: #fff;
+  font-family: var(--font-round);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 0 var(--color-shu-dark);
+  position: relative;
+}
+
+/* hanko — round stamp */
+.hanko {
+  display: inline-grid;
+  place-items: center;
+  border-radius: 9999px;
+  background: var(--color-shu);
+  color: #fff;
+  font-family: var(--font-display);
+  border: 2px solid var(--color-shu-dark);
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.35);
+}
+
+/* noren curtain top strip */
+.noren {
+  background: repeating-linear-gradient(90deg, var(--color-ai) 0 60px, var(--color-sumi) 60px 62px);
+}
+
+.font-display { font-family: var(--font-display); }
+.font-round { font-family: var(--font-round); }
+
+/* vertical Japanese label */
+.vertical-jp {
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  letter-spacing: 0.15em;
+}
+
+/* thin scrollbar */
+.scroll-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+.scroll-thin::-webkit-scrollbar-thumb { background: rgba(23,40,46,0.18); border-radius: 99px; }
+.scroll-thin::-webkit-scrollbar-track { background: transparent; }
+
+/* animations */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up { animation: fadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@keyframes floatY {
+  0%,100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.animate-float { animation: floatY 6s ease-in-out infinite; }
+
+@keyframes fall {
+  0% { transform: translateY(-10vh) rotate(0deg); opacity: 0; }
+  10% { opacity: 0.9; }
+  100% { transform: translateY(110vh) rotate(360deg); opacity: 0; }
+}
+.petal { position: fixed; top: 0; font-size: 18px; pointer-events: none; z-index: 5; animation: fall linear infinite; }
+
+@keyframes steam {
+  0% { opacity: 0; transform: translateY(0) scaleX(1); }
+  40% { opacity: 0.6; }
+  100% { opacity: 0; transform: translateY(-22px) scaleX(1.6); }
+}
+
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(214,72,63,0.4); }
+  100% { box-shadow: 0 0 0 12px rgba(214,72,63,0); }
+}
+.pulse-ring { animation: pulse-ring 1.8s ease-out infinite; }
+
+.btn-press { transition: transform 0.08s ease, box-shadow 0.12s ease; }
+.btn-press:active { transform: translateY(2px); }
