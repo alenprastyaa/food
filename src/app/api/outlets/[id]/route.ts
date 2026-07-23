@@ -7,7 +7,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const { id } = await params;
   const b = await req.json().catch(() => ({}));
   const data: Record<string, unknown> = {};
-  for (const k of ["name", "phone", "address"]) if (b[k] !== undefined) data[k] = b[k];
+  for (const k of ["name", "phone", "address", "openTime", "closeTime", "closedNote"]) if (b[k] !== undefined) data[k] = b[k] || null;
   if (b.latitude !== undefined) data.latitude = b.latitude === null || b.latitude === "" ? null : Number(b.latitude);
   if (b.longitude !== undefined) data.longitude = b.longitude === null || b.longitude === "" ? null : Number(b.longitude);
   if (b.isActive !== undefined) data.isActive = Boolean(b.isActive);

@@ -28,6 +28,39 @@
   --scroll: #d6483f;
 }
 
+/* ---------- Theme presets ---------- */
+/* Swapped at runtime via <html data-theme="..."> (see SiteSetting.themeName). */
+
+[data-theme="sakura"] {
+  --color-shu: #e0637a;
+  --color-shu-dark: #c14a61;
+  --color-shu-light: #ea8a9c;
+  --color-kin: #d9a441;
+  --color-kin-light: #edc978;
+  --scroll: #e0637a;
+}
+
+[data-theme="matcha"] {
+  --color-shu: #6f8a4f;
+  --color-shu-dark: #566d3d;
+  --color-shu-light: #86a568;
+  --color-kin: #c39b3e;
+  --color-kin-light: #e0c574;
+  --scroll: #6f8a4f;
+}
+
+[data-theme="malam"] {
+  --color-washi: #14181a;
+  --color-washi-dark: #0d1011;
+  --color-paper: #1c2224;
+  --color-sumi: #f2ede1;
+  --color-sumi-soft: #d9d2c3;
+  --color-shu: #e2554b;
+  --color-shu-dark: #c1443b;
+  --color-shu-light: #ea766c;
+  --scroll: #e2554b;
+}
+
 * {
   -webkit-tap-highlight-color: transparent;
 }

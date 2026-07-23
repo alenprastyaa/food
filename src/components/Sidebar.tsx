@@ -12,6 +12,7 @@ const NAV: NavItem[] = [
   { href: "/dashboard/chats", label: "Chat", jp: "チャット", icon: "💬" },
   { href: "/dashboard/orders", label: "Order", jp: "注文", icon: "🧾" },
   { href: "/dashboard/queue", label: "Antrian Dapur", jp: "調理", icon: "🍳" },
+  { href: "/dashboard/reservations", label: "Reservasi", jp: "予約", icon: "📅" },
   { href: "/dashboard/finance", label: "Keuangan", jp: "会計", icon: "📊" },
   { href: "/dashboard/menu", label: "Menu", jp: "メニュー", icon: "🍱", owner: true },
   { href: "/dashboard/outlets", label: "Outlet", jp: "店舗", icon: "🏮", owner: true },

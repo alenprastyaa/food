@@ -9,7 +9,11 @@ export async function GET(req: Request) {
   const outletId = searchParams.get("outletId") ?? user.outletId ?? undefined;
 
   const where = user.role === "OWNER" ? (outletId ? { outletId } : {}) : { outletId: user.outletId ?? "__none__" };
-  const menus = await prisma.menu.findMany({ where, orderBy: [{ category: "asc" }, { price: "asc" }] });
+  const menus = await prisma.menu.findMany({
+    where,
+    orderBy: [{ category: "asc" }, { price: "asc" }],
+    include: { optionGroups: { include: { options: true } } },
+  });
   return ok({ menus });
 }
 
@@ -17,7 +21,7 @@ export async function POST(req: Request) {
   const user = await authed();
   if (!user || user.role !== "OWNER") return bad("Hanya owner.", 403);
   const b = await req.json().catch(() => ({}));
-  const { outletId, name, category, description, price, image, isAvailable } = b;
+  const { outletId, name, category, description, price, image, isAvailable, isPromo, promoPrice } = b;
   if (!outletId || !name || !category || price == null) return bad("Nama, kategori, harga, outlet wajib.");
   if (!canAccessOutlet(user, outletId)) return bad("Bukan outletmu.", 403);
 
@@ -30,6 +34,8 @@ export async function POST(req: Request) {
       price: Math.round(Number(price)),
       image: image || "🍱",
       isAvailable: isAvailable ?? true,
+      isPromo: Boolean(isPromo),
+      promoPrice: promoPrice ? Math.round(Number(promoPrice)) : null,
     },
   });
   return ok({ menu });

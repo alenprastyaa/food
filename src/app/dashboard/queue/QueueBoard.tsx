@@ -58,10 +58,15 @@ export default function QueueBoard({ role }: { role: string }) {
                         <span className="text-[10px] text-sumi/40">{timeAgo(o.createdAt)}</span>
                       </div>
                       <p className="text-sm font-round font-bold text-sumi mt-1 truncate">{o.buyerName}</p>
+                      {o.scheduledFor && new Date(o.scheduledFor).getTime() > Date.now() && (
+                        <p className="text-[10px] font-bold text-amber-600">🕒 {new Date(o.scheduledFor).toLocaleString("id-ID", { dateStyle: "short", timeStyle: "short" })}</p>
+                      )}
                       <div className="mt-1.5 space-y-0.5">
                         {o.items.map((it) => (
                           <p key={it.id} className="text-xs text-sumi/60 truncate">
-                            <span className="font-bold text-shu">{it.qty}×</span> {it.menuName}{it.notes ? <span className="text-amber-600"> · {it.notes}</span> : null}
+                            <span className="font-bold text-shu">{it.qty}×</span> {it.menuName}
+                            {it.options.length > 0 && <span className="text-sumi/50"> · {it.options.map((op) => op.optionName).join(", ")}</span>}
+                            {it.notes ? <span className="text-amber-600"> · {it.notes}</span> : null}
                           </p>
                         ))}
                       </div>

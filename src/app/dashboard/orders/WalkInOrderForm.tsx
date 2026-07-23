@@ -2,21 +2,25 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button, MenuImage } from "@/components/ui";
 import { rupiah } from "@/lib/format";
+import { lineKey } from "@/lib/cart";
+import VariantPicker, { OptionGroup, SelectedOption } from "@/components/VariantPicker";
 
-type Menu = { id: string; name: string; category: string; price: number; image: string | null; isAvailable: boolean };
+type Menu = { id: string; name: string; category: string; price: number; image: string | null; isAvailable: boolean; optionGroups: OptionGroup[] };
 type Outlet = { id: string; name: string };
+type Line = { key: string; menuId: string; qty: number; options: SelectedOption[] };
 
 const CATS = ["Katsu", "Donburi", "Snack", "Drink", "Extra"];
 
 export default function WalkInOrderForm({ outlets, onClose, onCreated }: { outlets: Outlet[]; onClose: () => void; onCreated: () => void }) {
   const [outletId, setOutletId] = useState(outlets[0]?.id ?? "");
   const [menus, setMenus] = useState<Menu[]>([]);
-  const [qty, setQty] = useState<Record<string, number>>({});
+  const [lines, setLines] = useState<Record<string, Line>>({});
   const [buyerName, setBuyerName] = useState("");
   const [buyerPhone, setBuyerPhone] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"CASH" | "QRIS">("CASH");
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
+  const [variantMenu, setVariantMenu] = useState<Menu | null>(null);
 
   useEffect(() => {
     if (!outletId) return;
@@ -32,11 +36,26 @@ export default function WalkInOrderForm({ outlets, onClose, onCreated }: { outle
   }, [menus]);
 
   const menuMap = useMemo(() => new Map(menus.map((m) => [m.id, m])), [menus]);
-  const items = Object.entries(qty).filter(([, q]) => q > 0);
-  const total = items.reduce((s, [id, q]) => s + (menuMap.get(id)?.price ?? 0) * q, 0);
+  const items = Object.values(lines).filter((l) => l.qty > 0);
+  const unitPrice = (l: Line) => (menuMap.get(l.menuId)?.price ?? 0) + l.options.reduce((s, o) => s + o.priceDelta, 0);
+  const total = items.reduce((s, l) => s + unitPrice(l) * l.qty, 0);
 
-  function setQtyFor(id: string, q: number) {
-    setQty((p) => ({ ...p, [id]: Math.max(0, q) }));
+  function setQtyFor(menuId: string, q: number) {
+    const key = lineKey(menuId, []);
+    setLines((prev) => {
+      const cur = prev[key] ?? { key, menuId, qty: 0, options: [] };
+      return { ...prev, [key]: { ...cur, qty: Math.max(0, q) } };
+    });
+  }
+  function setLineQty(key: string, q: number) {
+    setLines((prev) => (prev[key] ? { ...prev, [key]: { ...prev[key], qty: Math.max(0, q) } } : prev));
+  }
+  function addVariantLine(menuId: string, options: SelectedOption[]) {
+    const key = lineKey(menuId, options);
+    setLines((prev) => {
+      const cur = prev[key];
+      return { ...prev, [key]: { key, menuId, qty: (cur?.qty ?? 0) + 1, options } };
+    });
   }
 
   async function submit() {
@@ -52,7 +71,7 @@ export default function WalkInOrderForm({ outlets, onClose, onCreated }: { outle
         buyerName,
         buyerPhone,
         paymentMethod,
-        items: items.map(([menuId, q]) => ({ menuId, qty: q })),
+        items: items.map((l) => ({ menuId: l.menuId, qty: l.qty, optionIds: l.options.map((o) => o.optionId) })),
       }),
     });
     setSaving(false);
@@ -93,20 +112,33 @@ export default function WalkInOrderForm({ outlets, onClose, onCreated }: { outle
             <div key={cat}>
               <h3 className="font-round font-bold text-sm text-sumi/70 mb-2">{cat}</h3>
               <div className="grid sm:grid-cols-2 gap-2">
-                {byCat[cat].map((m) => (
-                  <div key={m.id} className="paper-card rounded-xl p-2.5 flex items-center gap-2.5">
-                    <MenuImage image={m.image} category={m.category} className="h-11 w-11 rounded-lg shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-round font-bold truncate">{m.name}</p>
-                      <p className="text-xs text-shu font-bold">{rupiah(m.price)}</p>
+                {byCat[cat].map((m) => {
+                  const hasVariants = m.optionGroups.length > 0;
+                  const plainQty = lines[lineKey(m.id, [])]?.qty ?? 0;
+                  const totalQty = hasVariants ? items.filter((l) => l.menuId === m.id).reduce((s, l) => s + l.qty, 0) : plainQty;
+                  return (
+                    <div key={m.id} className="paper-card rounded-xl p-2.5 flex items-center gap-2.5">
+                      <MenuImage image={m.image} category={m.category} className="h-11 w-11 rounded-lg shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-round font-bold truncate">{m.name}</p>
+                        <p className="text-xs text-shu font-bold">{rupiah(m.price)}</p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {hasVariants ? (
+                          <button type="button" onClick={() => setVariantMenu(m)} className="rounded-lg bg-shu text-white text-xs font-bold px-3 py-1.5">
+                            {totalQty > 0 ? `+ (${totalQty})` : "+ Varian"}
+                          </button>
+                        ) : (
+                          <>
+                            <button type="button" onClick={() => setQtyFor(m.id, plainQty - 1)} className="h-7 w-7 rounded-lg bg-sumi/10 text-sumi/60 font-bold">-</button>
+                            <span className="w-5 text-center text-sm font-bold">{plainQty}</span>
+                            <button type="button" onClick={() => setQtyFor(m.id, plainQty + 1)} className="h-7 w-7 rounded-lg bg-shu/10 text-shu font-bold">+</button>
+                          </>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button type="button" onClick={() => setQtyFor(m.id, (qty[m.id] ?? 0) - 1)} className="h-7 w-7 rounded-lg bg-sumi/10 text-sumi/60 font-bold">-</button>
-                      <span className="w-5 text-center text-sm font-bold">{qty[m.id] ?? 0}</span>
-                      <button type="button" onClick={() => setQtyFor(m.id, (qty[m.id] ?? 0) + 1)} className="h-7 w-7 rounded-lg bg-shu/10 text-shu font-bold">+</button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           ))}
@@ -114,6 +146,24 @@ export default function WalkInOrderForm({ outlets, onClose, onCreated }: { outle
         </div>
 
         <div className="mt-4 pt-4 border-t border-sumi/10 space-y-3">
+          {items.some((l) => l.options.length > 0) && (
+            <div className="max-h-24 overflow-y-auto scroll-thin space-y-1">
+              {items.map((l) => {
+                const m = menuMap.get(l.menuId);
+                if (!m || l.options.length === 0) return null;
+                return (
+                  <div key={l.key} className="flex items-center justify-between gap-2 text-xs text-sumi/60">
+                    <span className="truncate">{l.qty}× {m.name} · {l.options.map((o) => o.name).join(", ")}</span>
+                    <span className="flex items-center gap-1.5 shrink-0">
+                      <span className="font-semibold">{rupiah(unitPrice(l) * l.qty)}</span>
+                      <button onClick={() => setLineQty(l.key, l.qty - 1)} className="h-5 w-5 rounded bg-sumi/10 text-sumi font-bold text-[10px]">−</button>
+                      <button onClick={() => setLineQty(l.key, l.qty + 1)} className="h-5 w-5 rounded bg-shu/10 text-shu font-bold text-[10px]">+</button>
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
           <div className="flex items-center justify-between">
             <span className="text-sm font-round font-bold text-sumi/60">Total</span>
             <span className="font-display text-xl font-extrabold text-shu">{rupiah(total)}</span>
@@ -148,6 +198,19 @@ export default function WalkInOrderForm({ outlets, onClose, onCreated }: { outle
         </div>
       </div>
       <style>{`.in{margin-top:.25rem;width:100%;border-radius:.75rem;border:1px solid rgba(23,40,46,.15);background:rgba(247,241,227,.5);padding:.6rem .9rem;font-size:.875rem;outline:none}.in:focus{border-color:var(--color-shu);box-shadow:0 0 0 2px rgba(214,72,63,.15)}`}</style>
+
+      {variantMenu && (
+        <VariantPicker
+          menuName={variantMenu.name}
+          basePrice={variantMenu.price}
+          groups={variantMenu.optionGroups}
+          onCancel={() => setVariantMenu(null)}
+          onConfirm={(selected) => {
+            addVariantLine(variantMenu.id, selected);
+            setVariantMenu(null);
+          }}
+        />
+      )}
     </div>
   );
 }

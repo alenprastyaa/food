@@ -8,20 +8,51 @@ datasource db {
 }
 
 model Outlet {
-  id        String   @id @default(cuid())
-  name      String
-  phone     String
-  address   String
-  latitude  Float?
-  longitude Float?
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
+  id         String   @id @default(cuid())
+  name       String
+  phone      String
+  address    String
+  latitude   Float?
+  longitude  Float?
+  isActive   Boolean  @default(true)
+  openTime   String?
+  closeTime  String?
+  closedNote String?
+  createdAt  DateTime @default(now())
 
   users         User[]
   menus         Menu[]
   conversations Conversation[]
   orders        Order[]
   payment       OutletPayment?
+  ratings       OutletRating[]
+  reservations  Reservation[]
+}
+
+model OutletRating {
+  id        String   @id @default(cuid())
+  outletId  String
+  outlet    Outlet   @relation(fields: [outletId], references: [id], onDelete: Cascade)
+  orderId   String   @unique
+  buyerName String
+  stars     Int
+  comment   String?
+  createdAt DateTime @default(now())
+}
+
+model Reservation {
+  id          String   @id @default(cuid())
+  outletId    String
+  outlet      Outlet   @relation(fields: [outletId], references: [id], onDelete: Cascade)
+  buyerId     String?
+  buyerName   String
+  buyerPhone  String
+  partySize   Int
+  reservedFor DateTime
+  notes       String?
+  status      String   @default("PENDING") // PENDING | CONFIRMED | CANCELLED | COMPLETED
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model User {
@@ -44,16 +75,29 @@ model Buyer {
   email     String?  @unique
   password  String?
   address   String?
+  points    Int      @default(0)
   createdAt DateTime @default(now())
 
-  conversations Conversation[]
-  orders        Order[]
+  conversations     Conversation[]
+  orders            Order[]
+  pointTransactions PointTransaction[]
+}
+
+model PointTransaction {
+  id        String   @id @default(cuid())
+  buyerId   String
+  buyer     Buyer    @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  orderId   String?
+  delta     Int
+  reason    String
+  createdAt DateTime @default(now())
 }
 
 model SiteSetting {
   id           String   @id @default("singleton")
   announcement String?
   isActive     Boolean  @default(false)
+  themeName    String   @default("default")
   updatedAt    DateTime @updatedAt
 }
 
@@ -77,9 +121,31 @@ model Menu {
   price       Int
   image       String?
   isAvailable Boolean  @default(true)
+  isPromo     Boolean  @default(false)
+  promoPrice  Int?
   createdAt   DateTime @default(now())
 
-  orderItems OrderItem[]
+  orderItems   OrderItem[]
+  optionGroups MenuOptionGroup[]
+}
+
+model MenuOptionGroup {
+  id       String  @id @default(cuid())
+  menuId   String
+  menu     Menu    @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  name     String
+  required Boolean @default(false)
+  multiple Boolean @default(false)
+
+  options MenuOption[]
+}
+
+model MenuOption {
+  id         String          @id @default(cuid())
+  groupId    String
+  group      MenuOptionGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  name       String
+  priceDelta Int             @default(0)
 }
 
 model Conversation {
@@ -124,15 +190,17 @@ model Order {
   buyerName  String
   buyerPhone String
 
-  orderType       String  @default("TAKEAWAY") // TAKEAWAY | DELIVERY
+  orderType       String    @default("TAKEAWAY") // TAKEAWAY | DELIVERY
   deliveryAddress String?
   latitude        Float?
   longitude       Float?
+  scheduledFor    DateTime?
 
   subtotal    Int @default(0)
   discount    Int @default(0)
   tax         Int @default(0)
   deliveryFee Int @default(0)
+  pointsUsed  Int @default(0)
   total       Int @default(0)
 
   status String @default("DRAFT")
@@ -147,16 +215,26 @@ model Order {
 }
 
 model OrderItem {
-  id       String @id @default(cuid())
+  id       String  @id @default(cuid())
   orderId  String
-  order    Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order    Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   menuId   String?
-  menu     Menu?  @relation(fields: [menuId], references: [id])
+  menu     Menu?   @relation(fields: [menuId], references: [id])
   menuName String
   qty      Int
   price    Int
   subtotal Int
   notes    String?
+
+  options OrderItemOption[]
+}
+
+model OrderItemOption {
+  id          String    @id @default(cuid())
+  orderItemId String
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  optionName  String
+  priceDelta  Int
 }
 
 model Payment {

@@ -3,9 +3,17 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui";
 import { PageHeader } from "@/components/dash";
 
+const THEMES = [
+  { key: "default", label: "Klasik Merah", swatch: "#d6483f" },
+  { key: "sakura", label: "Sakura", swatch: "#e0637a" },
+  { key: "matcha", label: "Matcha", swatch: "#6f8a4f" },
+  { key: "malam", label: "Malam", swatch: "#e2554b" },
+];
+
 export default function SettingsManager() {
   const [announcement, setAnnouncement] = useState("");
   const [isActive, setIsActive] = useState(false);
+  const [themeName, setThemeName] = useState("default");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -16,6 +24,7 @@ export default function SettingsManager() {
       .then((d) => {
         setAnnouncement(d.setting?.announcement ?? "");
         setIsActive(!!d.setting?.isActive);
+        setThemeName(d.setting?.themeName ?? "default");
         setLoading(false);
       });
   }, []);
@@ -26,18 +35,36 @@ export default function SettingsManager() {
     await fetch("/api/settings", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ announcement, isActive }),
+      body: JSON.stringify({ announcement, isActive, themeName }),
     });
     setSaving(false);
     setSaved(true);
+    location.reload(); // theme is applied server-side on <html>, so re-fetch the page to reflect it
   }
 
   if (loading) return null;
 
   return (
     <div>
-      <PageHeader title="Setting" jp="設定" subtitle="Pengumuman di bagian atas landing page" />
-      <div className="p-5 lg:p-8 max-w-xl">
+      <PageHeader title="Setting" jp="設定" subtitle="Pengumuman & tampilan aplikasi" />
+      <div className="p-5 lg:p-8 max-w-xl space-y-5">
+        <div className="paper-card rounded-2xl p-6 space-y-4">
+          <p className="font-round font-bold text-sm text-sumi">Tema Tampilan</p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            {THEMES.map((t) => (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => setThemeName(t.key)}
+                className={`rounded-xl p-3 text-left ring-1 transition ${themeName === t.key ? "ring-2 ring-offset-2 ring-shu" : "ring-sumi/10"}`}
+              >
+                <span className="block h-6 w-6 rounded-full mb-2" style={{ background: t.swatch }} />
+                <span className="text-xs font-round font-bold text-sumi">{t.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="paper-card rounded-2xl p-6 space-y-4">
           <label className="flex items-center justify-between gap-3">
             <div>

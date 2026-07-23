@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import { prisma } from "@/lib/prisma";
 import "./globals.css";
 
 const shippori = localFont({
@@ -39,9 +40,12 @@ export const metadata: Metadata = {
   description: "Sistem pemesanan makanan berbasis chat ala Jepang. Nashi Katsu — サクサク・ジューシー・やみつき.",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const setting = await prisma.siteSetting.findUnique({ where: { id: "singleton" } });
+  const theme = setting?.themeName && setting.themeName !== "default" ? setting.themeName : undefined;
+
   return (
-    <html lang="id" className={`${shippori.variable} ${zen.variable} ${jakarta.variable}`}>
+    <html lang="id" data-theme={theme} className={`${shippori.variable} ${zen.variable} ${jakarta.variable}`}>
       <body>{children}</body>
     </html>
   );

@@ -12,6 +12,7 @@ export type FullOrder = {
   deliveryAddress: string | null;
   latitude: number | null;
   longitude: number | null;
+  scheduledFor: string | null;
   buyerName: string;
   buyerPhone: string;
   conversationId: string | null;
@@ -22,7 +23,7 @@ export type FullOrder = {
   total: number;
   createdAt: string;
   outlet?: { name: string };
-  items: { id: string; menuName: string; qty: number; price: number; subtotal: number; notes: string | null }[];
+  items: { id: string; menuName: string; qty: number; price: number; subtotal: number; notes: string | null; options: { id: string; optionName: string; priceDelta: number }[] }[];
   payment: { status: string; amount: number; proofImage: string | null; notes: string | null } | null;
 };
 
@@ -61,6 +62,12 @@ export default function OrderDrawer({ order, onClose, onChanged }: { order: Full
             <span className="text-xs text-sumi/40">{clock(order.createdAt)}</span>
           </div>
 
+          {order.scheduledFor && (
+            <div className="rounded-xl bg-amber-50 ring-1 ring-amber-200 text-amber-700 text-xs font-round font-bold px-3 py-2">
+              🕒 Dijadwalkan: {new Date(order.scheduledFor).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" })}
+            </div>
+          )}
+
           {/* buyer */}
           <div className="paper-card rounded-xl p-4">
             <div className="flex items-center justify-between">
@@ -84,7 +91,11 @@ export default function OrderDrawer({ order, onClose, onChanged }: { order: Full
           <div className="paper-card rounded-xl p-4 space-y-2">
             {order.items.map((it) => (
               <div key={it.id} className="flex justify-between text-sm">
-                <span className="text-sumi/70">{it.qty}× {it.menuName}{it.notes ? <span className="text-sumi/40"> · {it.notes}</span> : null}</span>
+                <span className="text-sumi/70">
+                  {it.qty}× {it.menuName}
+                  {it.options.length > 0 && <span className="text-sumi/40"> · {it.options.map((o) => o.optionName).join(", ")}</span>}
+                  {it.notes ? <span className="text-sumi/40"> · {it.notes}</span> : null}
+                </span>
                 <span className="font-semibold">{rupiah(it.subtotal)}</span>
               </div>
             ))}
@@ -145,6 +156,9 @@ export default function OrderDrawer({ order, onClose, onChanged }: { order: Full
             )}
             <Link href={`/order/${order.id}`} target="_blank" className="flex-1">
               <Button variant="ghost" className="w-full">🔗 Link Order</Button>
+            </Link>
+            <Link href={`/print/orders/${order.id}/labels`} target="_blank" className="flex-1">
+              <Button variant="ghost" className="w-full">🏷️ Stiker</Button>
             </Link>
             {!["COMPLETED", "CANCELLED"].includes(order.status) && (
               <Button variant="ghost" className="text-rose-600" disabled={busy} onClick={() => act(`/api/orders/${order.id}/status`, { status: "CANCELLED" })}>Batalkan</Button>

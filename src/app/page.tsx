@@ -3,14 +3,15 @@ import { prisma } from "@/lib/prisma";
 import { Logo, Button, MenuImage } from "@/components/ui";
 import { rupiah } from "@/lib/format";
 import { getBuyerSession } from "@/lib/buyerAuth";
+import { isOutletOpen } from "@/lib/outlet";
 import Petals from "@/components/Petals";
 
 export const dynamic = "force-dynamic";
 
 export default async function Landing() {
-  const outlets = await prisma.outlet.findMany({ where: { isActive: true }, orderBy: { name: "asc" } });
+  const outlets = await prisma.outlet.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, include: { ratings: true } });
   const featured = await prisma.menu.findMany({
-    where: { outletId: outlets[0]?.id, category: { in: ["Katsu", "Donburi"] } },
+    where: { isPromo: true, isAvailable: true, outlet: { isActive: true } },
     take: 6,
     orderBy: { price: "asc" },
   });
@@ -106,23 +107,34 @@ export default async function Landing() {
         <div className="mx-auto max-w-6xl px-5 relative">
           <div className="flex items-end justify-between mb-8">
             <div>
-              <p className="font-round text-kin-light text-sm tracking-[0.3em]">おすすめメニュー</p>
-              <h2 className="font-display text-3xl font-extrabold mt-1">Menu Andalan</h2>
+              <p className="font-round text-kin-light text-sm tracking-[0.3em]">セール中</p>
+              <h2 className="font-display text-3xl font-extrabold mt-1">Menu Promo</h2>
             </div>
-            <span className="font-display text-shu-light text-sm">全メニュー →</span>
+            <Link href="/promo" className="font-display text-shu-light text-sm hover:underline">Lihat semua →</Link>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {featured.map((m) => (
-              <Link key={m.id} href={outlets[0] ? `/o/${outlets[0].id}?add=${m.id}` : "#outlets"} className="rounded-2xl bg-washi/5 ring-1 ring-washi/10 p-4 hover:bg-washi/10 transition group min-w-0 block">
-                <MenuImage image={m.image} category={m.category} big className="aspect-square w-full rounded-xl mb-3 group-hover:scale-105 transition-transform" />
-                <p className="font-round font-bold text-sm leading-snug">{m.name}</p>
-                <div className="flex items-center justify-between mt-2">
-                  <span className="text-xs text-washi/40">{m.category}</span>
-                  <span className="price-tag text-xs px-2 py-0.5">{rupiah(m.price)}</span>
-                </div>
-              </Link>
-            ))}
-          </div>
+          {featured.length === 0 ? (
+            <p className="text-washi/40 text-sm">Belum ada promo saat ini.</p>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {featured.map((m) => (
+                <Link key={m.id} href={`/o/${m.outletId}?add=${m.id}`} className="rounded-2xl bg-washi/5 ring-1 ring-washi/10 p-4 hover:bg-washi/10 transition group min-w-0 block">
+                  <MenuImage image={m.image} category={m.category} big className="aspect-square w-full rounded-xl mb-3 group-hover:scale-105 transition-transform" />
+                  <p className="font-round font-bold text-sm leading-snug">{m.name}</p>
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-xs text-washi/40">{m.category}</span>
+                    {m.promoPrice != null && m.promoPrice < m.price ? (
+                      <span className="flex items-center gap-1.5">
+                        <span className="text-washi/30 line-through text-xs">{rupiah(m.price)}</span>
+                        <span className="price-tag text-xs px-2 py-0.5">{rupiah(m.promoPrice)}</span>
+                      </span>
+                    ) : (
+                      <span className="price-tag text-xs px-2 py-0.5">{rupiah(m.price)}</span>
+                    )}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -132,22 +144,33 @@ export default async function Landing() {
           <p className="font-round text-shu text-sm tracking-[0.3em]">店舗を選ぶ</p>
           <h2 className="font-display text-3xl font-extrabold mt-1">Pilih Outlet & Mulai Chat</h2>
           <p className="text-sumi/50 mt-2">Tanpa daftar. Cukup pilih outlet terdekat lalu ngobrol dengan kasir.</p>
+          <Link href="/outlets" className="inline-block mt-3 text-sm font-round font-bold text-shu hover:underline">Lihat semua & peta →</Link>
         </div>
         <div className="grid sm:grid-cols-2 gap-5 max-w-3xl mx-auto">
-          {outlets.map((o) => (
-            <Link key={o.id} href={`/o/${o.id}`} className="paper-card rounded-2xl p-6 hover:-translate-y-1 hover:shadow-xl transition group">
-              <div className="flex items-start justify-between">
-                <div className="hanko h-11 w-11 text-lg">店</div>
-                <span className="text-xs font-round font-bold text-emerald-700 bg-emerald-100 rounded-full px-2 py-1 ring-1 ring-emerald-200">Buka</span>
-              </div>
-              <h3 className="font-display text-xl font-extrabold mt-4 group-hover:text-shu transition">{o.name}</h3>
-              <p className="text-sm text-sumi/50 mt-1">{o.address}</p>
-              <p className="text-sm text-sumi/40 mt-0.5">{o.phone}</p>
-              <div className="mt-4 flex items-center gap-1.5 text-shu font-round font-bold text-sm">
-                Mulai Chat <span className="group-hover:translate-x-1 transition-transform">→</span>
-              </div>
-            </Link>
-          ))}
+          {outlets.map((o) => {
+            const open = isOutletOpen(o);
+            const avgRating = o.ratings.length > 0 ? o.ratings.reduce((s, r) => s + r.stars, 0) / o.ratings.length : null;
+            return (
+              <Link key={o.id} href={`/o/${o.id}`} className="paper-card rounded-2xl p-6 hover:-translate-y-1 hover:shadow-xl transition group">
+                <div className="flex items-start justify-between">
+                  <div className="hanko h-11 w-11 text-lg">店</div>
+                  <span className={`text-xs font-round font-bold rounded-full px-2 py-1 ring-1 ${open ? "text-emerald-700 bg-emerald-100 ring-emerald-200" : "text-rose-600 bg-rose-100 ring-rose-200"}`}>
+                    {open ? "Buka" : "Tutup"}
+                  </span>
+                </div>
+                <h3 className="font-display text-xl font-extrabold mt-4 group-hover:text-shu transition">{o.name}</h3>
+                <p className="text-sm text-sumi/50 mt-1">{o.address}</p>
+                <p className="text-sm text-sumi/40 mt-0.5">{o.phone}</p>
+                <div className="flex items-center gap-3 mt-1">
+                  {o.openTime && o.closeTime && <p className="text-xs text-sumi/40">🕒 {o.openTime}–{o.closeTime}</p>}
+                  {avgRating != null && <p className="text-xs text-sumi/40">⭐ {avgRating.toFixed(1)} ({o.ratings.length})</p>}
+                </div>
+                <div className="mt-4 flex items-center gap-1.5 text-shu font-round font-bold text-sm">
+                  Mulai Chat <span className="group-hover:translate-x-1 transition-transform">→</span>
+                </div>
+              </Link>
+            );
+          })}
         </div>
       </section>
 

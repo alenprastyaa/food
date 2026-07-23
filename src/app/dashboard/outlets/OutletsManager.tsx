@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui";
 import { PageHeader } from "@/components/dash";
+import { isOutletOpen } from "@/lib/outlet";
 
 type Outlet = {
   id: string;
@@ -11,6 +12,10 @@ type Outlet = {
   latitude: number | null;
   longitude: number | null;
   isActive: boolean;
+  openTime: string | null;
+  closeTime: string | null;
+  closedNote: string | null;
+  ratings: { stars: number }[];
   _count: { menus: number; users: number; orders: number };
 };
 
@@ -52,6 +57,18 @@ export default function OutletsManager() {
             <div className="p-4 space-y-1.5">
               <p className="text-sm text-sumi/60">📍 {o.address}</p>
               <p className="text-sm text-sumi/60">📞 {o.phone}</p>
+              {o.openTime && o.closeTime && (
+                <p className="text-sm text-sumi/60">
+                  🕒 {o.openTime}–{o.closeTime}{" "}
+                  <span className={`ml-1 text-[11px] font-bold ${isOutletOpen(o) ? "text-emerald-600" : "text-rose-500"}`}>
+                    ({isOutletOpen(o) ? "Buka sekarang" : "Tutup sekarang"})
+                  </span>
+                </p>
+              )}
+              {o.closedNote && !o.isActive && <p className="text-xs text-rose-500 italic">"{o.closedNote}"</p>}
+              {o.ratings.length > 0 && (
+                <p className="text-sm text-sumi/60">⭐ {(o.ratings.reduce((s, r) => s + r.stars, 0) / o.ratings.length).toFixed(1)} ({o.ratings.length} rating)</p>
+              )}
               {o.latitude != null && (
                 <a href={`https://www.google.com/maps/search/?api=1&query=${o.latitude},${o.longitude}`} target="_blank" className="text-xs text-shu font-bold hover:underline inline-block">Lihat di peta →</a>
               )}
@@ -87,6 +104,9 @@ function OutletForm({ outlet, onClose, onSaved }: { outlet: Outlet | null; onClo
     address: outlet?.address ?? "",
     latitude: outlet?.latitude?.toString() ?? "",
     longitude: outlet?.longitude?.toString() ?? "",
+    openTime: outlet?.openTime ?? "",
+    closeTime: outlet?.closeTime ?? "",
+    closedNote: outlet?.closedNote ?? "",
   });
   const [saving, setSaving] = useState(false);
   const [locating, setLocating] = useState(false);
@@ -143,6 +163,13 @@ function OutletForm({ outlet, onClose, onSaved }: { outlet: Outlet | null; onClo
             <F label="Latitude"><input value={f.latitude} onChange={(e) => set("latitude", e.target.value)} className="in" placeholder="-7.79" /></F>
             <F label="Longitude"><input value={f.longitude} onChange={(e) => set("longitude", e.target.value)} className="in" placeholder="110.36" /></F>
           </div>
+          <div className="grid grid-cols-2 gap-3">
+            <F label="Jam Buka"><input type="time" value={f.openTime} onChange={(e) => set("openTime", e.target.value)} className="in" /></F>
+            <F label="Jam Tutup"><input type="time" value={f.closeTime} onChange={(e) => set("closeTime", e.target.value)} className="in" /></F>
+          </div>
+          <F label="Keterangan saat tutup (opsional, mis. 'Libur Lebaran')">
+            <input value={f.closedNote} onChange={(e) => set("closedNote", e.target.value)} className="in" placeholder="Ditampilkan ke pembeli saat outlet dinonaktifkan" />
+          </F>
           {err && <p className="text-sm text-shu bg-shu/10 rounded-lg px-3 py-2">{err}</p>}
           <div className="flex gap-2 pt-1">
             <Button onClick={save} disabled={saving} className="flex-1">{saving ? "Menyimpan…" : "Simpan"}</Button>

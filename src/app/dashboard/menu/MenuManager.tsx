@@ -5,7 +5,21 @@ import { Button, MenuImage } from "@/components/ui";
 import { PageHeader, EmptyState } from "@/components/dash";
 import { fileToDataUrl } from "@/lib/hooks";
 
-type Menu = { id: string; name: string; category: string; description: string | null; price: number; image: string | null; isAvailable: boolean; outletId: string };
+type MenuOption = { id: string; name: string; priceDelta: number };
+type MenuOptionGroup = { id: string; name: string; required: boolean; multiple: boolean; options: MenuOption[] };
+type Menu = {
+  id: string;
+  name: string;
+  category: string;
+  description: string | null;
+  price: number;
+  image: string | null;
+  isAvailable: boolean;
+  isPromo: boolean;
+  promoPrice: number | null;
+  outletId: string;
+  optionGroups: MenuOptionGroup[];
+};
 type Outlet = { id: string; name: string };
 
 const EMOJIS = ["🍱", "🍤", "🍗", "🍛", "🍚", "🍥", "🍿", "🥚", "🔥", "🍢", "🥟", "🐙", "🍘", "🍵", "🍳", "🌶️", "🥢", "🍜"];
@@ -78,10 +92,16 @@ export default function MenuManager({ outlets }: { outlets: Outlet[] }) {
                       <p className="font-round font-bold text-sm truncate">{m.name}</p>
                       <p className="text-xs text-sumi/50 line-clamp-2">{m.description}</p>
                       <p className="text-shu font-display font-extrabold text-sm mt-0.5">{rupiah(m.price)}</p>
-                      <div className="flex items-center gap-2 mt-2">
+                      <div className="flex items-center gap-2 mt-2 flex-wrap">
                         <button onClick={() => toggle(m)} className={`text-[11px] font-bold rounded-full px-2 py-0.5 ${m.isAvailable ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-500"}`}>
                           {m.isAvailable ? "● Tersedia" : "○ Habis"}
                         </button>
+                        {m.optionGroups.length > 0 && (
+                          <span className="text-[11px] font-bold rounded-full px-2 py-0.5 bg-violet-100 text-violet-700">{m.optionGroups.length} varian</span>
+                        )}
+                        {m.isPromo && (
+                          <span className="text-[11px] font-bold rounded-full px-2 py-0.5 bg-shu/10 text-shu">🔥 Promo</span>
+                        )}
                         <button onClick={() => { setEditing(m); setShowForm(true); }} className="text-[11px] font-bold text-sumi/50 hover:text-shu">Edit</button>
                         <button onClick={() => remove(m)} className="text-[11px] font-bold text-rose-400 hover:text-rose-600">Hapus</button>
                       </div>
@@ -108,25 +128,63 @@ export default function MenuManager({ outlets }: { outlets: Outlet[] }) {
   );
 }
 
+type GroupDraft = { name: string; required: boolean; multiple: boolean; options: { name: string; priceDelta: number }[] };
+
 function MenuForm({ outletId, menu, emojis, cats, onClose, onSaved }: { outletId: string; menu: Menu | null; emojis: string[]; cats: string[]; onClose: () => void; onSaved: () => void }) {
   const [name, setName] = useState(menu?.name ?? "");
   const [category, setCategory] = useState(menu?.category ?? cats[0]);
   const [price, setPrice] = useState(menu?.price ?? 0);
   const [description, setDescription] = useState(menu?.description ?? "");
   const [image, setImage] = useState(menu?.image ?? "🍱");
+  const [isPromo, setIsPromo] = useState(menu?.isPromo ?? false);
+  const [promoPrice, setPromoPrice] = useState(menu?.promoPrice ?? 0);
+  const [groups, setGroups] = useState<GroupDraft[]>(
+    (menu?.optionGroups ?? []).map((g) => ({ name: g.name, required: g.required, multiple: g.multiple, options: g.options.map((o) => ({ name: o.name, priceDelta: o.priceDelta })) }))
+  );
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
+
+  function addGroup() {
+    setGroups((p) => [...p, { name: "", required: false, multiple: false, options: [{ name: "", priceDelta: 0 }] }]);
+  }
+  function updateGroup(i: number, patch: Partial<GroupDraft>) {
+    setGroups((p) => p.map((g, gi) => (gi === i ? { ...g, ...patch } : g)));
+  }
+  function removeGroup(i: number) {
+    setGroups((p) => p.filter((_, gi) => gi !== i));
+  }
+  function addOption(gi: number) {
+    setGroups((p) => p.map((g, i) => (i === gi ? { ...g, options: [...g.options, { name: "", priceDelta: 0 }] } : g)));
+  }
+  function updateOption(gi: number, oi: number, patch: Partial<{ name: string; priceDelta: number }>) {
+    setGroups((p) => p.map((g, i) => (i === gi ? { ...g, options: g.options.map((o, j) => (j === oi ? { ...o, ...patch } : o)) } : g)));
+  }
+  function removeOption(gi: number, oi: number) {
+    setGroups((p) => p.map((g, i) => (i === gi ? { ...g, options: g.options.filter((_, j) => j !== oi) } : g)));
+  }
 
   async function save() {
     setErr("");
     if (!name.trim() || !price) return setErr("Nama & harga wajib.");
     setSaving(true);
-    const body = { outletId, name, category, price, description, image };
+    const body = { outletId, name, category, price, description, image, isPromo, promoPrice: isPromo ? promoPrice || null : null };
     const res = menu
       ? await fetch(`/api/menu/${menu.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
       : await fetch(`/api/menu`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    if (!res.ok) {
+      setSaving(false);
+      const d = await res.json().catch(() => ({}));
+      return setErr(d.error || "Gagal menyimpan.");
+    }
+    const saved = await res.json();
+    const menuId = menu?.id ?? saved.menu?.id;
+    if (menuId) {
+      const cleanGroups = groups
+        .filter((g) => g.name.trim() && g.options.some((o) => o.name.trim()))
+        .map((g) => ({ ...g, options: g.options.filter((o) => o.name.trim()) }));
+      await fetch(`/api/menu/${menuId}/options`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ groups: cleanGroups }) });
+    }
     setSaving(false);
-    if (!res.ok) { const d = await res.json().catch(() => ({})); return setErr(d.error || "Gagal menyimpan."); }
     onSaved();
   }
 
@@ -168,6 +226,68 @@ function MenuForm({ outletId, menu, emojis, cats, onClose, onSaved }: { outletId
               ))}
             </div>
           </Field>
+          <div className="rounded-xl border border-sumi/15 bg-washi/40 p-3 space-y-2">
+            <label className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-sumi/60">🔥 Tandai sebagai Promo</span>
+              <input type="checkbox" checked={isPromo} onChange={(e) => setIsPromo(e.target.checked)} />
+            </label>
+            {isPromo && (
+              <Field label="Harga Promo (Rp, opsional — kosongkan jika hanya ingin tampil di halaman promo)">
+                <input type="number" value={promoPrice || ""} onChange={(e) => setPromoPrice(Number(e.target.value))} className="in" placeholder={`Normal: ${price}`} />
+              </Field>
+            )}
+          </div>
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-sumi/60">Opsi / Varian (mis. Level Pedas, Tambahan)</span>
+              <button type="button" onClick={addGroup} className="text-xs font-bold text-shu hover:underline">+ Grup</button>
+            </div>
+            <div className="mt-1.5 space-y-2.5 max-h-52 overflow-y-auto scroll-thin pr-1">
+              {groups.map((g, gi) => (
+                <div key={gi} className="rounded-xl border border-sumi/15 bg-washi/40 p-2.5 space-y-2">
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      value={g.name}
+                      onChange={(e) => updateGroup(gi, { name: e.target.value })}
+                      placeholder="Nama grup (mis. Level Pedas)"
+                      className="flex-1 rounded-lg border border-sumi/15 bg-paper px-2.5 py-1.5 text-xs outline-none focus:border-shu"
+                    />
+                    <button type="button" onClick={() => removeGroup(gi)} className="text-rose-400 hover:text-rose-600 text-xs px-1">✕</button>
+                  </div>
+                  <div className="flex items-center gap-3 text-[11px] text-sumi/60">
+                    <label className="flex items-center gap-1">
+                      <input type="checkbox" checked={g.required} onChange={(e) => updateGroup(gi, { required: e.target.checked })} /> Wajib pilih
+                    </label>
+                    <label className="flex items-center gap-1">
+                      <input type="checkbox" checked={g.multiple} onChange={(e) => updateGroup(gi, { multiple: e.target.checked })} /> Bisa multi-pilih
+                    </label>
+                  </div>
+                  <div className="space-y-1.5">
+                    {g.options.map((o, oi) => (
+                      <div key={oi} className="flex items-center gap-1.5">
+                        <input
+                          value={o.name}
+                          onChange={(e) => updateOption(gi, oi, { name: e.target.value })}
+                          placeholder="Nama opsi"
+                          className="flex-1 rounded-lg border border-sumi/15 bg-paper px-2.5 py-1.5 text-xs outline-none focus:border-shu"
+                        />
+                        <input
+                          type="number"
+                          value={o.priceDelta || ""}
+                          onChange={(e) => updateOption(gi, oi, { priceDelta: Number(e.target.value) })}
+                          placeholder="+Rp"
+                          className="w-20 rounded-lg border border-sumi/15 bg-paper px-2.5 py-1.5 text-xs outline-none focus:border-shu"
+                        />
+                        <button type="button" onClick={() => removeOption(gi, oi)} className="text-rose-400 hover:text-rose-600 text-xs px-1">✕</button>
+                      </div>
+                    ))}
+                    <button type="button" onClick={() => addOption(gi)} className="text-[11px] font-bold text-shu hover:underline">+ Opsi</button>
+                  </div>
+                </div>
+              ))}
+              {groups.length === 0 && <p className="text-[11px] text-sumi/40">Belum ada varian. Menu ini akan tampil apa adanya tanpa pilihan tambahan.</p>}
+            </div>
+          </div>
           {err && <p className="text-sm text-shu bg-shu/10 rounded-lg px-3 py-2">{err}</p>}
           <div className="flex gap-2 pt-1">
             <Button onClick={save} disabled={saving} className="flex-1">{saving ? "Menyimpan…" : "Simpan"}</Button>

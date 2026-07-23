@@ -12,6 +12,7 @@ const FILTERS: { key: string; label: string; statuses: string[] | null }[] = [
   { key: "verify", label: "Perlu Verifikasi", statuses: ["WAITING_PAYMENT_VERIFICATION"] },
   { key: "pay", label: "Menunggu Bayar", statuses: ["WAITING_CONFIRMATION", "WAITING_PAYMENT"] },
   { key: "active", label: "Aktif", statuses: ["QUEUED", "COOKING", "READY"] },
+  { key: "scheduled", label: "Pesanan Mendatang", statuses: null },
   { key: "done", label: "Selesai", statuses: ["COMPLETED"] },
   { key: "cancel", label: "Batal", statuses: ["CANCELLED"] },
 ];
@@ -23,7 +24,10 @@ export default function OrdersManager({ role, outlets }: { role: string; outlets
   const { data, reload } = usePoll<{ orders: FullOrder[] }>("/api/orders", 4000);
   const orders = data?.orders ?? [];
 
+  const isScheduled = (o: FullOrder) => !!o.scheduledFor && new Date(o.scheduledFor).getTime() > Date.now();
+
   const filtered = useMemo(() => {
+    if (filter === "scheduled") return orders.filter(isScheduled);
     const f = FILTERS.find((x) => x.key === filter);
     if (!f?.statuses) return orders;
     return orders.filter((o) => f.statuses!.includes(o.status));
@@ -31,7 +35,10 @@ export default function OrdersManager({ role, outlets }: { role: string; outlets
 
   const counts = useMemo(() => {
     const c: Record<string, number> = {};
-    for (const f of FILTERS) c[f.key] = f.statuses ? orders.filter((o) => f.statuses!.includes(o.status)).length : orders.length;
+    for (const f of FILTERS) {
+      if (f.key === "scheduled") c[f.key] = orders.filter(isScheduled).length;
+      else c[f.key] = f.statuses ? orders.filter((o) => f.statuses!.includes(o.status)).length : orders.length;
+    }
     return c;
   }, [orders]);
 
@@ -90,8 +97,13 @@ export default function OrdersManager({ role, outlets }: { role: string; outlets
                     </div>
                     <span className="font-display font-extrabold text-shu">{rupiah(o.total)}</span>
                   </div>
-                  <div className="mt-3">
+                  <div className="mt-3 flex items-center gap-1.5 flex-wrap">
                     <StatusBadge label={st?.label} jp={st?.jp} tone={st?.tone} />
+                    {isScheduled(o) && (
+                      <span className="text-[10px] font-bold rounded-full px-2 py-0.5 bg-amber-100 text-amber-700">
+                        🕒 {new Date(o.scheduledFor!).toLocaleString("id-ID", { dateStyle: "short", timeStyle: "short" })}
+                      </span>
+                    )}
                   </div>
                 </button>
               );

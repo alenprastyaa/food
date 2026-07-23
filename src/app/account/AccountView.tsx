@@ -18,10 +18,26 @@ type Order = {
   items: { id: string; menuName: string; qty: number }[];
 };
 
+type Reservation = {
+  id: string;
+  partySize: number;
+  reservedFor: string;
+  status: string;
+  outlet: { name: string };
+};
+
+const RESERVATION_STATUS: Record<string, { label: string; tone: string }> = {
+  PENDING: { label: "Menunggu", tone: "amber" },
+  CONFIRMED: { label: "Dikonfirmasi", tone: "sky" },
+  COMPLETED: { label: "Selesai", tone: "emerald" },
+  CANCELLED: { label: "Dibatalkan", tone: "rose" },
+};
+
 export default function AccountView() {
   const router = useRouter();
-  const [buyer, setBuyer] = useState<{ name: string; phone: string; email: string | null } | null>(null);
+  const [buyer, setBuyer] = useState<{ name: string; phone: string; email: string | null; points: number } | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -30,6 +46,7 @@ export default function AccountView() {
       .then((d) => {
         setBuyer(d.buyer ?? null);
         setOrders(d.orders ?? []);
+        setReservations(d.reservations ?? []);
         setLoading(false);
       });
   }, []);
@@ -52,9 +69,13 @@ export default function AccountView() {
         {buyer && (
           <div className="paper-card rounded-3xl p-5 flex items-center gap-4 mb-5">
             <span className="hanko h-14 w-14 text-xl shrink-0">{buyer.name.charAt(0)}</span>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="font-display text-lg font-extrabold text-sumi truncate">{buyer.name}</p>
               <p className="text-sm text-sumi/50">{buyer.phone}{buyer.email ? ` · ${buyer.email}` : ""}</p>
+            </div>
+            <div className="text-right shrink-0">
+              <p className="font-display text-xl font-extrabold text-shu">🪙 {buyer.points}</p>
+              <p className="text-[10px] text-sumi/40">Poin</p>
             </div>
           </div>
         )}
@@ -85,6 +106,29 @@ export default function AccountView() {
               );
             })}
           </div>
+        )}
+
+        {!loading && reservations.length > 0 && (
+          <>
+            <h2 className="font-display text-xl font-extrabold text-sumi mb-3 mt-8">Reservasi Saya <span className="font-round text-shu/60 text-sm">予約</span></h2>
+            <div className="space-y-3">
+              {reservations.map((r) => {
+                const st = RESERVATION_STATUS[r.status];
+                return (
+                  <div key={r.id} className="paper-card rounded-2xl p-4 flex items-center gap-3">
+                    <span className="hanko h-12 w-12 text-lg shrink-0">📅</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-round font-bold text-sm text-sumi truncate">{r.outlet.name.replace("Nashi Katsu — ", "")}</p>
+                      <p className="text-xs text-sumi/50">
+                        {new Date(r.reservedFor).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" })} · {r.partySize} orang
+                      </p>
+                      <div className="mt-1.5"><StatusBadge label={st?.label} tone={st?.tone} /></div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
         )}
 
         <Link href="/" className="block mt-6"><Button variant="outline" className="w-full">← Pesan Lagi</Button></Link>

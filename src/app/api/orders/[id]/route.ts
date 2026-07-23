@@ -7,11 +7,12 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const order = await prisma.order.findUnique({
     where: { id },
     include: {
-      items: true,
+      items: { include: { options: true } },
       payment: true,
       outlet: { include: { payment: true } },
     },
   });
   if (!order) return bad("Order tidak ditemukan.", 404);
-  return ok({ order });
+  const rating = await prisma.outletRating.findUnique({ where: { orderId: id } });
+  return ok({ order: { ...order, rating } });
 }

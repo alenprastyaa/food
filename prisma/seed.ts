@@ -35,11 +35,11 @@ const qrisSvg = (label: string) => {
 
 const MENU = [
   // Katsu
-  { name: "Chicken / Dori Katsu Happy", category: "Katsu", price: 14000, image: photo("katsu-happy", "🍤"), desc: "Katsu ayam / dori krispi di atas nasi hangat. Menu paling hemat." },
-  { name: "Chicken / Dori Katsu Sambal Matah / Geprek", category: "Katsu", price: 19000, image: photo("katsu-sambal", "🌶️"), desc: "Katsu disiram sambal matah segar atau digeprek pedas nampol." },
+  { name: "Chicken / Dori Katsu Happy", category: "Katsu", price: 14000, image: photo("katsu-happy", "🍤"), desc: "Katsu ayam / dori krispi di atas nasi hangat. Menu paling hemat.", variant: true },
+  { name: "Chicken / Dori Katsu Sambal Matah / Geprek", category: "Katsu", price: 19000, image: photo("katsu-sambal", "🌶️"), desc: "Katsu disiram sambal matah segar atau digeprek pedas nampol.", variant: true },
   { name: "Chic / Dori Katsu", category: "Katsu", price: 11000, image: photo("katsu-plain", "🍗"), desc: "Potongan katsu ayam / dori tanpa nasi. Cocok jadi lauk." },
   // Donburi
-  { name: "Chicken Teriyaki Donburi", category: "Donburi", price: 20000, image: photo("teriyaki-donburi", "🍱"), desc: "Ayam teriyaki manis gurih di atas nasi Jepang." },
+  { name: "Chicken Teriyaki Donburi", category: "Donburi", price: 20000, image: photo("teriyaki-donburi", "🍱"), desc: "Ayam teriyaki manis gurih di atas nasi Jepang.", promo: true, promoPrice: 16000 },
   { name: "Chic / Dori Katsu Curry Donburi", category: "Donburi", price: 21000, image: photo("curry-donburi", "🍛"), desc: "Katsu disiram kari Jepang kental ala Hokkaido." },
   { name: "Hokkaido Dori / Chic Katsu Donburi", category: "Donburi", price: 21000, image: photo("hokkaido-donburi", "🍥"), desc: "Signature donburi dengan saus creamy khas Hokkaido." },
   { name: "Chicken / Dori Katsu Donburi", category: "Donburi", price: 20000, image: photo("katsu-donburi", "🍚"), desc: "Donburi katsu klasik dengan saus tonkatsu." },
@@ -54,7 +54,7 @@ const MENU = [
   { name: "Egg Chic Roll", category: "Snack", price: 15000, image: photo("eggroll", "🥚"), desc: "Egg roll isi ayam, lembut di dalam garing di luar." },
   { name: "Mix Chic & Shrimp", category: "Snack", price: 16000, image: photo("mixsnack", "🍢"), desc: "Kombinasi ayam & udang dalam satu porsi." },
   { name: "Skin Gyoza Bbq / Keju", category: "Snack", price: 5000, image: photo("gyozabbq", "🥟"), desc: "Kulit gyoza renyah rasa BBQ atau keju." },
-  { name: "Takoyaki Ball", category: "Snack", price: 15000, image: photo("takoyaki", "🐙"), desc: "Takoyaki isi gurita dengan katsuobushi menari." },
+  { name: "Takoyaki Ball", category: "Snack", price: 15000, image: photo("takoyaki", "🐙"), desc: "Takoyaki isi gurita dengan katsuobushi menari.", promo: true, promoPrice: 11000 },
   { name: "Gyoza Fried", category: "Snack", price: 15000, image: photo("gyozafried", "🥟"), desc: "Gyoza goreng isi ayam, garing sempurna." },
   { name: "Chicken Karage", category: "Snack", price: 16000, image: photo("karage", "🍗"), desc: "Karaage ayam tanpa nasi, isi banyak." },
   // Drink
@@ -66,11 +66,17 @@ const MENU = [
 async function main() {
   console.log("🌱 Seeding Nashi Katsu...");
   // wipe
+  await prisma.outletRating.deleteMany();
+  await prisma.reservation.deleteMany();
+  await prisma.pointTransaction.deleteMany();
   await prisma.payment.deleteMany();
+  await prisma.orderItemOption.deleteMany();
   await prisma.orderItem.deleteMany();
   await prisma.order.deleteMany();
   await prisma.message.deleteMany();
   await prisma.conversation.deleteMany();
+  await prisma.menuOption.deleteMany();
+  await prisma.menuOptionGroup.deleteMany();
   await prisma.menu.deleteMany();
   await prisma.outletPayment.deleteMany();
   await prisma.user.deleteMany();
@@ -85,6 +91,8 @@ async function main() {
         latitude: -7.7925,
         longitude: 110.3656,
         isActive: true,
+        openTime: "09:00",
+        closeTime: "22:00",
       },
     }),
     prisma.outlet.create({
@@ -95,6 +103,8 @@ async function main() {
         latitude: -7.7702,
         longitude: 110.4045,
         isActive: true,
+        openTime: "10:00",
+        closeTime: "21:00",
       },
     }),
   ]);
@@ -108,17 +118,51 @@ async function main() {
 
   // Menus for both outlets
   for (const o of outlets) {
-    await prisma.menu.createMany({
-      data: MENU.map((m) => ({
-        outletId: o.id,
-        name: m.name,
-        category: m.category,
-        description: m.desc,
-        price: m.price,
-        image: m.image,
-        isAvailable: true,
-      })),
-    });
+    for (const m of MENU) {
+      await prisma.menu.create({
+        data: {
+          outletId: o.id,
+          name: m.name,
+          category: m.category,
+          description: m.desc,
+          price: m.price,
+          image: m.image,
+          isAvailable: true,
+          isPromo: !!("promo" in m && m.promo),
+          promoPrice: "promoPrice" in m ? m.promoPrice : null,
+          optionGroups: "variant" in m && m.variant
+            ? {
+                create: [
+                  {
+                    name: "Level Pedas",
+                    required: true,
+                    multiple: false,
+                    options: {
+                      create: [
+                        { name: "Original (Tidak Pedas)", priceDelta: 0 },
+                        { name: "Sedang", priceDelta: 0 },
+                        { name: "Pedas", priceDelta: 0 },
+                        { name: "Extra Pedas", priceDelta: 2000 },
+                      ],
+                    },
+                  },
+                  {
+                    name: "Tambahan",
+                    required: false,
+                    multiple: true,
+                    options: {
+                      create: [
+                        { name: "Extra Nasi", priceDelta: 5000 },
+                        { name: "Telur Ceplok", priceDelta: 4000 },
+                      ],
+                    },
+                  },
+                ],
+              }
+            : undefined,
+        },
+      });
+    }
   }
 
   const pass = (p: string) => bcrypt.hashSync(p, 10);

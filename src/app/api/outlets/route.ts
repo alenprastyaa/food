@@ -6,7 +6,7 @@ export async function GET() {
   if (!user) return bad("Tidak diizinkan.", 401);
   const outlets = await prisma.outlet.findMany({
     orderBy: { name: "asc" },
-    include: { _count: { select: { menus: true, users: true, orders: true } }, payment: true },
+    include: { _count: { select: { menus: true, users: true, orders: true } }, payment: true, ratings: true },
   });
   return ok({ outlets });
 }
@@ -24,6 +24,9 @@ export async function POST(req: Request) {
       latitude: b.latitude ? Number(b.latitude) : null,
       longitude: b.longitude ? Number(b.longitude) : null,
       isActive: b.isActive ?? true,
+      openTime: b.openTime || null,
+      closeTime: b.closeTime || null,
+      closedNote: b.closedNote || null,
       payment: { create: { ownerName: b.ownerName || "NASHI KATSU FOOD", qrisImage: null } },
     },
   });

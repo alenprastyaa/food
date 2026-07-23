@@ -1,10 +1,17 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 
-export type CartLine = { menuId: string; qty: number; notes: string };
+export type CartOption = { groupId: string; optionId: string; name: string; priceDelta: number };
+export type CartLine = { key: string; menuId: string; qty: number; notes: string; options: CartOption[] };
 type CartState = { outletId: string; lines: Record<string, CartLine> };
 
 const KEY = "nashi_cart_v1";
+
+export function lineKey(menuId: string, options: CartOption[]) {
+  if (options.length === 0) return menuId;
+  const ids = options.map((o) => o.optionId).sort().join(",");
+  return `${menuId}::${ids}`;
+}
 
 function load(): CartState | null {
   if (typeof window === "undefined") return null;
@@ -38,17 +45,30 @@ export function useCart(outletId: string) {
     save({ outletId, lines });
   }, [outletId, lines, hydrated]);
 
-  const setQty = useCallback((menuId: string, qty: number) => {
+  /** add one unit of a menu item with a given option selection (new line, or +1 to a matching existing line) */
+  const addLine = useCallback((menuId: string, options: CartOption[] = []) => {
+    const key = lineKey(menuId, options);
+    setLines((prev) => {
+      const cur = prev[key];
+      return { ...prev, [key]: { key, menuId, qty: (cur?.qty ?? 0) + 1, notes: cur?.notes ?? "", options } };
+    });
+    return key;
+  }, []);
+
+  const setQty = useCallback((key: string, qty: number) => {
     setLines((prev) => {
       const next = { ...prev };
-      if (qty <= 0) delete next[menuId];
-      else next[menuId] = { menuId, qty, notes: prev[menuId]?.notes ?? "" };
+      if (qty <= 0) {
+        delete next[key];
+      } else if (next[key]) {
+        next[key] = { ...next[key], qty };
+      }
       return next;
     });
   }, []);
 
-  const setNotes = useCallback((menuId: string, notes: string) => {
-    setLines((prev) => (prev[menuId] ? { ...prev, [menuId]: { ...prev[menuId], notes } } : prev));
+  const setNotes = useCallback((key: string, notes: string) => {
+    setLines((prev) => (prev[key] ? { ...prev, [key]: { ...prev[key], notes } } : prev));
   }, []);
 
   const clear = useCallback(() => {
@@ -59,5 +79,5 @@ export function useCart(outletId: string) {
   const items = Object.values(lines);
   const count = items.reduce((s, l) => s + l.qty, 0);
 
-  return { lines, items, count, setQty, setNotes, clear, hydrated };
+  return { lines, items, count, addLine, setQty, setNotes, clear, hydrated };
 }

@@ -15,6 +15,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   for (const k of ["name", "category", "description", "image"]) if (b[k] !== undefined) data[k] = b[k];
   if (b.price !== undefined) data.price = Math.round(Number(b.price));
   if (b.isAvailable !== undefined) data.isAvailable = Boolean(b.isAvailable);
+  if (b.isPromo !== undefined) data.isPromo = Boolean(b.isPromo);
+  if (b.promoPrice !== undefined) data.promoPrice = b.promoPrice === null || b.promoPrice === "" ? null : Math.round(Number(b.promoPrice));
 
   const updated = await prisma.menu.update({ where: { id }, data });
   return ok({ menu: updated });

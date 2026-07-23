@@ -5,7 +5,7 @@ import { DELIVERY_FEE } from "@/lib/scope";
 // Buyer sets take away / delivery
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { orderType, deliveryAddress, latitude, longitude } = await req.json().catch(() => ({}));
+  const { orderType, deliveryAddress, latitude, longitude, scheduledFor } = await req.json().catch(() => ({}));
   if (!["TAKEAWAY", "DELIVERY"].includes(orderType)) return bad("Tipe pesanan tidak valid.");
 
   const order = await prisma.order.findUnique({ where: { id } });
@@ -17,7 +17,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return bad("Delivery butuh alamat & lokasi GPS aktif.");
 
   const deliveryFee = orderType === "DELIVERY" ? DELIVERY_FEE : 0;
-  const total = Math.max(0, order.subtotal - order.discount + order.tax + deliveryFee);
+  const total = Math.max(0, order.subtotal - order.discount - order.pointsUsed * 100 + order.tax + deliveryFee);
 
   const updated = await prisma.order.update({
     where: { id },
@@ -28,6 +28,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       longitude: orderType === "DELIVERY" ? longitude : null,
       deliveryFee,
       total,
+      scheduledFor: scheduledFor ? new Date(scheduledFor) : null,
       payment: { update: { amount: total } },
     },
   });

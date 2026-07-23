@@ -20,9 +20,12 @@ type OrderData = {
     discount: number;
     tax: number;
     deliveryFee: number;
+    pointsUsed: number;
     total: number;
-    items: { id: string; menuName: string; qty: number; price: number; subtotal: number; notes: string | null }[];
+    items: { id: string; menuName: string; qty: number; price: number; subtotal: number; notes: string | null; options: { id: string; optionName: string; priceDelta: number }[] }[];
     payment: { status: string; amount: number; proofImage: string | null; notes: string | null } | null;
+    scheduledFor: string | null;
+    rating: { stars: number; comment: string | null } | null;
     outlet: {
       name: string;
       phone: string;
@@ -102,6 +105,12 @@ export default function OrderFlow({ orderId, conversationId }: { orderId: string
             </div>
           )}
 
+          {order.scheduledFor && (
+            <div className="px-5 py-2.5 bg-amber-50 border-b border-amber-100 text-xs font-round font-bold text-amber-700">
+              🕒 Dijadwalkan: {new Date(order.scheduledFor).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" })}
+            </div>
+          )}
+
           {/* items */}
           <div className="px-5 py-4 space-y-3">
             {order.items.map((it) => (
@@ -109,6 +118,7 @@ export default function OrderFlow({ orderId, conversationId }: { orderId: string
                 <MenuImage image={null} category="Katsu" className="h-11 w-11 rounded-lg shrink-0" />
                 <div className="min-w-0 flex-1">
                   <p className="font-round font-bold text-sm text-sumi truncate">{it.menuName}</p>
+                  {it.options.length > 0 && <p className="text-xs text-sumi/50 truncate">{it.options.map((o) => o.optionName).join(", ")}</p>}
                   <p className="text-xs text-sumi/50">{it.qty} × {rupiah(it.price)}{it.notes ? ` · ${it.notes}` : ""}</p>
                 </div>
                 <span className="font-semibold text-sm text-sumi">{rupiah(it.subtotal)}</span>
@@ -120,6 +130,7 @@ export default function OrderFlow({ orderId, conversationId }: { orderId: string
           <div className="px-5 py-4 bg-washi/50 border-t border-dashed border-sumi/20 space-y-1.5 text-sm">
             <Row label="Subtotal" value={rupiah(order.subtotal)} />
             {order.discount > 0 && <Row label="Diskon" value={"− " + rupiah(order.discount)} tone="text-emerald-600" />}
+            {order.pointsUsed > 0 && <Row label={`Poin (${order.pointsUsed})`} value={"− " + rupiah(order.pointsUsed * 100)} tone="text-emerald-600" />}
             {order.tax > 0 && <Row label="Pajak / Biaya" value={rupiah(order.tax)} />}
             {order.deliveryFee > 0 && <Row label="Ongkir" value={rupiah(order.deliveryFee)} />}
             <div className="flex justify-between items-center pt-2 border-t border-sumi/10">
@@ -143,7 +154,7 @@ export default function OrderFlow({ orderId, conversationId }: { orderId: string
         ) : order.status === "WAITING_PAYMENT_VERIFICATION" ? (
           <VerifyStage order={order} />
         ) : (
-          <KitchenStage order={order} />
+          <KitchenStage order={order} reload={reload} />
         )}
 
         <p className="text-center text-xs text-sumi/40 mt-6">🔒 {order.outlet.name} · {order.outlet.phone}</p>
@@ -168,6 +179,8 @@ function ReviewStage({ order, reload }: { order: OrderData["order"]; reload: () 
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(
     order.latitude != null ? { lat: order.latitude, lng: order.longitude! } : null
   );
+  const [scheduleLater, setScheduleLater] = useState(!!order.scheduledFor);
+  const [scheduledFor, setScheduledFor] = useState(order.scheduledFor ? order.scheduledFor.slice(0, 16) : "");
   const [locating, setLocating] = useState(false);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
@@ -195,11 +208,18 @@ function ReviewStage({ order, reload }: { order: OrderData["order"]; reload: () 
   async function confirm() {
     setErr("");
     if (type === "DELIVERY" && (!address.trim() || !coords)) return setErr("Isi alamat & aktifkan lokasi GPS dulu.");
+    if (scheduleLater && !scheduledFor) return setErr("Pilih tanggal & jam pesanan dulu.");
     setLoading(true);
     const t = await fetch(`/api/orders/${order.id}/type`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ orderType: type, deliveryAddress: address, latitude: coords?.lat, longitude: coords?.lng }),
+      body: JSON.stringify({
+        orderType: type,
+        deliveryAddress: address,
+        latitude: coords?.lat,
+        longitude: coords?.lng,
+        scheduledFor: scheduleLater ? scheduledFor : null,
+      }),
     });
     if (!t.ok) {
       setLoading(false);
@@ -248,6 +268,19 @@ function ReviewStage({ order, reload }: { order: OrderData["order"]; reload: () 
             {locating ? "📍 Mencari lokasi…" : coords ? `📍 Lokasi aktif (${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)})` : "📍 Aktifkan Lokasi GPS"}
           </button>
         </div>
+      )}
+
+      <label className="flex items-center justify-between rounded-xl bg-washi/50 ring-1 ring-sumi/10 px-4 py-3 cursor-pointer">
+        <span className="text-sm font-round font-bold text-sumi">🕒 Pesan untuk nanti?</span>
+        <input type="checkbox" checked={scheduleLater} onChange={(e) => setScheduleLater(e.target.checked)} />
+      </label>
+      {scheduleLater && (
+        <input
+          type="datetime-local"
+          value={scheduledFor}
+          onChange={(e) => setScheduledFor(e.target.value)}
+          className="w-full rounded-xl border border-sumi/15 bg-washi/50 px-4 py-3 text-sm outline-none focus:border-shu focus:ring-2 focus:ring-shu/20"
+        />
       )}
 
       {err && <p className="text-sm text-shu bg-shu/10 rounded-lg px-3 py-2">{err}</p>}
@@ -357,7 +390,7 @@ function VerifyStage({ order }: { order: OrderData["order"] }) {
 }
 
 /* ---------- KITCHEN / STATUS ---------- */
-function KitchenStage({ order }: { order: OrderData["order"] }) {
+function KitchenStage({ order, reload }: { order: OrderData["order"]; reload: () => void }) {
   const stages = [
     { key: "QUEUED", label: "Masuk Antrian", jp: "待機列", icon: "📋" },
     { key: "COOKING", label: "Sedang Dimasak", jp: "調理中", icon: "🍳" },
@@ -368,32 +401,94 @@ function KitchenStage({ order }: { order: OrderData["order"] }) {
   const cur = order2idx[order.status] ?? 0;
 
   return (
-    <div className="paper-card rounded-2xl p-5">
-      <div className="text-center mb-5">
-        <div className="text-5xl mb-1 animate-float inline-block">{stages[cur].icon}</div>
-        <p className="font-display font-extrabold text-xl">{stages[cur].label}</p>
-        <p className="font-round text-shu/70 text-sm">{stages[cur].jp}</p>
-        {order.orderType === "DELIVERY" && order.deliveryAddress && (
-          <p className="text-xs text-sumi/50 mt-2">🛵 Diantar ke: {order.deliveryAddress}</p>
-        )}
-      </div>
-      <div className="space-y-3">
-        {stages.map((s, i) => {
-          const done = i < cur;
-          const active = i === cur;
-          return (
-            <div key={s.key} className={`flex items-center gap-3 rounded-xl p-3 transition ${active ? "bg-shu/10 ring-1 ring-shu/30" : done ? "opacity-60" : "opacity-40"}`}>
-              <div className={`grid place-items-center h-9 w-9 rounded-full ${done || active ? "bg-shu text-white" : "bg-sumi/10 text-sumi/40"}`}>
-                {done ? "✓" : s.icon}
+    <div className="space-y-4">
+      <div className="paper-card rounded-2xl p-5">
+        <div className="text-center mb-5">
+          <div className="text-5xl mb-1 animate-float inline-block">{stages[cur].icon}</div>
+          <p className="font-display font-extrabold text-xl">{stages[cur].label}</p>
+          <p className="font-round text-shu/70 text-sm">{stages[cur].jp}</p>
+          {order.orderType === "DELIVERY" && order.deliveryAddress && (
+            <p className="text-xs text-sumi/50 mt-2">🛵 Diantar ke: {order.deliveryAddress}</p>
+          )}
+        </div>
+        <div className="space-y-3">
+          {stages.map((s, i) => {
+            const done = i < cur;
+            const active = i === cur;
+            return (
+              <div key={s.key} className={`flex items-center gap-3 rounded-xl p-3 transition ${active ? "bg-shu/10 ring-1 ring-shu/30" : done ? "opacity-60" : "opacity-40"}`}>
+                <div className={`grid place-items-center h-9 w-9 rounded-full ${done || active ? "bg-shu text-white" : "bg-sumi/10 text-sumi/40"}`}>
+                  {done ? "✓" : s.icon}
+                </div>
+                <div className="flex-1">
+                  <p className="font-round font-bold text-sm">{s.label}</p>
+                </div>
+                {active && <span className="h-2.5 w-2.5 rounded-full bg-shu pulse-ring" />}
               </div>
-              <div className="flex-1">
-                <p className="font-round font-bold text-sm">{s.label}</p>
-              </div>
-              {active && <span className="h-2.5 w-2.5 rounded-full bg-shu pulse-ring" />}
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
+      {order.status === "COMPLETED" && <RatingCard order={order} reload={reload} />}
+    </div>
+  );
+}
+
+/* ---------- RATING ---------- */
+function RatingCard({ order, reload }: { order: OrderData["order"]; reload: () => void }) {
+  const [stars, setStars] = useState(0);
+  const [comment, setComment] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
+
+  if (order.rating) {
+    return (
+      <div className="paper-card rounded-2xl p-5 text-center">
+        <p className="font-round font-bold text-sm text-sumi/60">Terima kasih atas ratingmu!</p>
+        <p className="text-2xl mt-1">{"⭐".repeat(order.rating.stars)}</p>
+        {order.rating.comment && <p className="text-sm text-sumi/50 mt-2 italic">"{order.rating.comment}"</p>}
+      </div>
+    );
+  }
+
+  async function submit() {
+    setErr("");
+    if (stars < 1) return setErr("Pilih bintang dulu ya.");
+    setLoading(true);
+    const res = await fetch(`/api/orders/${order.id}/rating`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ stars, comment }),
+    });
+    setLoading(false);
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      return setErr(d.error || "Gagal mengirim rating.");
+    }
+    reload();
+  }
+
+  return (
+    <div className="paper-card rounded-2xl p-5 space-y-3 text-center">
+      <p className="font-display font-extrabold text-lg">Bagaimana pesananmu?</p>
+      <div className="flex justify-center gap-1">
+        {[1, 2, 3, 4, 5].map((n) => (
+          <button key={n} onClick={() => setStars(n)} className="text-3xl leading-none">
+            {n <= stars ? "⭐" : "☆"}
+          </button>
+        ))}
+      </div>
+      <textarea
+        value={comment}
+        onChange={(e) => setComment(e.target.value)}
+        rows={2}
+        placeholder="Komentar (opsional)…"
+        className="w-full rounded-xl border border-sumi/15 bg-washi/50 px-4 py-2.5 text-sm outline-none focus:border-shu focus:ring-2 focus:ring-shu/20"
+      />
+      {err && <p className="text-sm text-shu bg-shu/10 rounded-lg px-3 py-2">{err}</p>}
+      <Button onClick={submit} disabled={loading} className="w-full py-3">
+        {loading ? "Mengirim…" : "Kirim Rating"}
+      </Button>
     </div>
   );
 }

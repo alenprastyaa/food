@@ -20,6 +20,18 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   const updated = await prisma.order.update({ where: { id }, data: { status } });
 
+  // award loyalty points once, when an order first reaches COMPLETED
+  if (status === "COMPLETED" && order.status !== "COMPLETED") {
+    const buyerId = order.buyerId ?? (await prisma.buyer.findUnique({ where: { phone: order.buyerPhone } }))?.id;
+    const points = Math.floor(order.total / 10000);
+    if (buyerId && points > 0) {
+      await prisma.buyer.update({ where: { id: buyerId }, data: { points: { increment: points } } });
+      await prisma.pointTransaction.create({
+        data: { buyerId, orderId: order.id, delta: points, reason: `Belanja ${order.invoiceNumber}` },
+      });
+    }
+  }
+
   const labels: Record<string, string> = {
     COOKING: `Pesananmu ${order.invoiceNumber} sedang dimasak 🍳`,
     READY: `Pesananmu ${order.invoiceNumber} sudah siap! 🎉 Silakan diambil / tunggu kurir ya.`,

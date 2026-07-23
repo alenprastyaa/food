@@ -13,7 +13,7 @@ export async function GET(req: Request) {
   const orders = await prisma.order.findMany({
     where: outletScope(user, statuses ? { status: { in: statuses } } : {}),
     include: {
-      items: true,
+      items: { include: { options: true } },
       payment: true,
       outlet: { select: { name: true } },
     },
@@ -29,12 +29,13 @@ export async function POST(req: Request) {
   if (!user) return bad("Tidak diizinkan.", 401);
 
   const body = await req.json().catch(() => ({}));
-  const { conversationId, items, discount = 0, tax = 0, note } = body as {
+  const { conversationId, items, discount = 0, tax = 0, note, scheduledFor } = body as {
     conversationId: string;
-    items: { menuId: string; qty: number; notes?: string }[];
+    items: { menuId: string; qty: number; notes?: string; optionIds?: string[] }[];
     discount?: number;
     tax?: number;
     note?: string;
+    scheduledFor?: string;
   };
 
   if (!conversationId || !Array.isArray(items) || items.length === 0) return bad("Pilih minimal satu menu.");
@@ -45,15 +46,29 @@ export async function POST(req: Request) {
 
   // resolve menu prices from DB
   const menuIds = items.map((i) => i.menuId);
-  const menus = await prisma.menu.findMany({ where: { id: { in: menuIds }, outletId: conv.outletId } });
+  const menus = await prisma.menu.findMany({
+    where: { id: { in: menuIds }, outletId: conv.outletId },
+    include: { optionGroups: { include: { options: true } } },
+  });
   const menuMap = new Map(menus.map((m) => [m.id, m]));
 
   const orderItems = items
     .filter((i) => menuMap.has(i.menuId) && i.qty > 0)
     .map((i) => {
       const m = menuMap.get(i.menuId)!;
-      const sub = m.price * i.qty;
-      return { menuId: m.id, menuName: m.name, qty: i.qty, price: m.price, subtotal: sub, notes: i.notes || null };
+      const allOptions = m.optionGroups.flatMap((g) => g.options);
+      const selected = (i.optionIds ?? []).map((id) => allOptions.find((o) => o.id === id)).filter((o): o is NonNullable<typeof o> => !!o);
+      const unitPrice = m.price + selected.reduce((s, o) => s + o.priceDelta, 0);
+      const sub = unitPrice * i.qty;
+      return {
+        menuId: m.id,
+        menuName: m.name,
+        qty: i.qty,
+        price: unitPrice,
+        subtotal: sub,
+        notes: i.notes || null,
+        options: { create: selected.map((o) => ({ optionName: o.name, priceDelta: o.priceDelta })) },
+      };
     });
 
   if (orderItems.length === 0) return bad("Menu tidak valid.");
@@ -75,6 +90,7 @@ export async function POST(req: Request) {
       tax: Number(tax || 0),
       deliveryFee: 0,
       total,
+      scheduledFor: scheduledFor ? new Date(scheduledFor) : null,
       status: "WAITING_CONFIRMATION",
       items: { create: orderItems },
       payment: { create: { method: "QRIS", amount: total, status: "UNPAID" } },
