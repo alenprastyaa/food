@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 export type CartOption = { groupId: string; optionId: string; name: string; priceDelta: number };
-export type CartLine = { key: string; menuId: string; qty: number; notes: string; options: CartOption[] };
+export type CartLine = { key: string; menuId: string; qty: number; notes: string; forName: string; options: CartOption[] };
 type CartState = { outletId: string; lines: Record<string, CartLine> };
 
 const KEY = "nashi_cart_v1";
@@ -50,7 +50,7 @@ export function useCart(outletId: string) {
     const key = lineKey(menuId, options);
     setLines((prev) => {
       const cur = prev[key];
-      return { ...prev, [key]: { key, menuId, qty: (cur?.qty ?? 0) + 1, notes: cur?.notes ?? "", options } };
+      return { ...prev, [key]: { key, menuId, qty: (cur?.qty ?? 0) + 1, notes: cur?.notes ?? "", forName: cur?.forName ?? "", options } };
     });
     return key;
   }, []);
@@ -71,6 +71,10 @@ export function useCart(outletId: string) {
     setLines((prev) => (prev[key] ? { ...prev, [key]: { ...prev[key], notes } } : prev));
   }, []);
 
+  const setForName = useCallback((key: string, forName: string) => {
+    setLines((prev) => (prev[key] ? { ...prev, [key]: { ...prev[key], forName } } : prev));
+  }, []);
+
   const clear = useCallback(() => {
     setLines({});
     if (typeof window !== "undefined") localStorage.removeItem(KEY);
@@ -79,5 +83,5 @@ export function useCart(outletId: string) {
   const items = Object.values(lines);
   const count = items.reduce((s, l) => s + l.qty, 0);
 
-  return { lines, items, count, addLine, setQty, setNotes, clear, hydrated };
+  return { lines, items, count, addLine, setQty, setNotes, setForName, clear, hydrated };
 }

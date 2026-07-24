@@ -225,6 +225,7 @@ model OrderItem {
   price    Int
   subtotal Int
   notes    String?
+  forName  String?
 
   options OrderItemOption[]
 }

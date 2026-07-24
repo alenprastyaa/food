@@ -8,6 +8,7 @@ export type SelectedOption = { groupId: string; optionId: string; name: string; 
 
 export default function VariantPicker({
   menuName,
+  description,
   basePrice,
   groups,
   confirmLabel = "Tambahkan",
@@ -15,6 +16,7 @@ export default function VariantPicker({
   onConfirm,
 }: {
   menuName: string;
+  description?: string | null;
   basePrice: number;
   groups: OptionGroup[];
   confirmLabel?: string;
@@ -52,7 +54,8 @@ export default function VariantPicker({
       <div className="w-full max-w-sm bg-washi rounded-t-[1.75rem] sm:rounded-3xl paper-card max-h-[85vh] flex flex-col animate-fade-up" onClick={(e) => e.stopPropagation()}>
         <div className="p-5 border-b border-sumi/10">
           <h3 className="font-display text-lg font-extrabold">{menuName}</h3>
-          <p className="text-xs text-sumi/50">Pilih varian sebelum ditambahkan</p>
+          {description && <p className="text-xs text-sumi/50 mt-1">{description}</p>}
+          <p className="text-xs text-sumi/40 mt-1">Pilih varian sebelum ditambahkan</p>
         </div>
         <div className="flex-1 overflow-y-auto scroll-thin p-5 space-y-4">
           {groups.map((g) => (

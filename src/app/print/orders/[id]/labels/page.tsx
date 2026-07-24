@@ -36,6 +36,7 @@ export default async function PrintLabelsPage({ params }: { params: Promise<{ id
               <span>{order.invoiceNumber}</span>
               <span>#{i + 1}/{labels.length}</span>
             </div>
+            {l.forName && <p className="text-xs font-bold uppercase tracking-wide">👤 {l.forName}</p>}
             <p className="text-sm font-extrabold mt-1 leading-snug">{l.menuName}</p>
             {l.options.length > 0 && (
               <p className="text-xs mt-0.5">{l.options.map((o) => o.optionName).join(", ")}</p>

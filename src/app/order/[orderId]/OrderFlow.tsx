@@ -22,7 +22,7 @@ type OrderData = {
     deliveryFee: number;
     pointsUsed: number;
     total: number;
-    items: { id: string; menuName: string; qty: number; price: number; subtotal: number; notes: string | null; options: { id: string; optionName: string; priceDelta: number }[] }[];
+    items: { id: string; menuName: string; qty: number; price: number; subtotal: number; notes: string | null; forName: string | null; options: { id: string; optionName: string; priceDelta: number }[] }[];
     payment: { status: string; amount: number; proofImage: string | null; notes: string | null } | null;
     scheduledFor: string | null;
     rating: { stars: number; comment: string | null } | null;
@@ -117,6 +117,7 @@ export default function OrderFlow({ orderId, conversationId }: { orderId: string
               <div key={it.id} className="flex items-center gap-3">
                 <MenuImage image={null} category="Katsu" className="h-11 w-11 rounded-lg shrink-0" />
                 <div className="min-w-0 flex-1">
+                  {it.forName && <p className="text-[11px] font-bold text-shu truncate">Untuk: {it.forName}</p>}
                   <p className="font-round font-bold text-sm text-sumi truncate">{it.menuName}</p>
                   {it.options.length > 0 && <p className="text-xs text-sumi/50 truncate">{it.options.map((o) => o.optionName).join(", ")}</p>}
                   <p className="text-xs text-sumi/50">{it.qty} × {rupiah(it.price)}{it.notes ? ` · ${it.notes}` : ""}</p>

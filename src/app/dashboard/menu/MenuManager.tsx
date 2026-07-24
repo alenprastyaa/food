@@ -200,6 +200,9 @@ function MenuForm({ outletId, menu, emojis, cats, onClose, onSaved }: { outletId
             </Field>
             <Field label="Harga (Rp)"><input type="number" value={price || ""} onChange={(e) => setPrice(Number(e.target.value))} className="in" /></Field>
           </div>
+          <Field label="Deskripsi (isi produk, bahan, dll — tampil di menu & pilihan varian)">
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} placeholder="mis. Katsu ayam krispi di atas nasi hangat, disiram saus tonkatsu." className="in resize-none" />
+          </Field>
           <Field label="Foto Menu">
             <div className="mt-1 flex items-center gap-3">
               <div className="h-16 w-16 rounded-xl overflow-hidden shrink-0 ring-1 ring-sumi/10">

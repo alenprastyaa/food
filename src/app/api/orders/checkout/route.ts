@@ -9,7 +9,7 @@ export async function POST(req: Request) {
     outletId: string;
     buyerName: string;
     buyerPhone: string;
-    items: { menuId: string; qty: number; notes?: string; optionIds?: string[] }[];
+    items: { menuId: string; qty: number; notes?: string; forName?: string; optionIds?: string[] }[];
     pointsToUse?: number;
   };
 
@@ -40,6 +40,7 @@ export async function POST(req: Request) {
         price: unitPrice,
         subtotal: sub,
         notes: i.notes?.trim() || null,
+        forName: i.forName?.trim() || null,
         options: { create: selected.map((o) => ({ optionName: o.name, priceDelta: o.priceDelta })) },
       };
     });

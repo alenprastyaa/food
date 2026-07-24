@@ -23,7 +23,7 @@ export type FullOrder = {
   total: number;
   createdAt: string;
   outlet?: { name: string };
-  items: { id: string; menuName: string; qty: number; price: number; subtotal: number; notes: string | null; options: { id: string; optionName: string; priceDelta: number }[] }[];
+  items: { id: string; menuName: string; qty: number; price: number; subtotal: number; notes: string | null; forName: string | null; options: { id: string; optionName: string; priceDelta: number }[] }[];
   payment: { status: string; amount: number; proofImage: string | null; notes: string | null } | null;
 };
 
@@ -92,6 +92,7 @@ export default function OrderDrawer({ order, onClose, onChanged }: { order: Full
             {order.items.map((it) => (
               <div key={it.id} className="flex justify-between text-sm">
                 <span className="text-sumi/70">
+                  {it.forName ? <span className="font-bold text-shu">{it.forName}: </span> : null}
                   {it.qty}× {it.menuName}
                   {it.options.length > 0 && <span className="text-sumi/40"> · {it.options.map((o) => o.optionName).join(", ")}</span>}
                   {it.notes ? <span className="text-sumi/40"> · {it.notes}</span> : null}

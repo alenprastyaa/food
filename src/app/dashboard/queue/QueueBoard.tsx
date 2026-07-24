@@ -65,6 +65,7 @@ export default function QueueBoard({ role }: { role: string }) {
                         {o.items.map((it) => (
                           <p key={it.id} className="text-xs text-sumi/60 truncate">
                             <span className="font-bold text-shu">{it.qty}×</span> {it.menuName}
+                            {it.forName && <span className="font-bold text-sumi"> ({it.forName})</span>}
                             {it.options.length > 0 && <span className="text-sumi/50"> · {it.options.map((op) => op.optionName).join(", ")}</span>}
                             {it.notes ? <span className="text-amber-600"> · {it.notes}</span> : null}
                           </p>

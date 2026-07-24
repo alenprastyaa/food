@@ -139,6 +139,7 @@ export default function Shop({
       {variantMenu && (
         <VariantPicker
           menuName={variantMenu.name}
+          description={variantMenu.description}
           basePrice={variantMenu.price}
           groups={variantMenu.optionGroups}
           confirmLabel="Tambah ke Keranjang"
@@ -237,6 +238,12 @@ function CartSheet({
                     )}
                     <p className="text-xs text-shu font-bold">{rupiah(unitPrice)}</p>
                     <input
+                      value={l.forName}
+                      onChange={(e) => cart.setForName(l.key, e.target.value)}
+                      placeholder="Untuk siapa? (misal: Ainun) — opsional"
+                      className="mt-1 w-full text-xs rounded-md border border-sumi/10 bg-washi/50 px-2 py-1 outline-none focus:border-shu"
+                    />
+                    <input
                       value={l.notes}
                       onChange={(e) => cart.setNotes(l.key, e.target.value)}
                       placeholder="Catatan (opsional)…"
@@ -316,7 +323,7 @@ function CheckoutSheet({
         outletId: outlet.id,
         buyerName: name,
         buyerPhone: phone,
-        items: cart.items.map((l) => ({ menuId: l.menuId, qty: l.qty, notes: l.notes, optionIds: l.options.map((o) => o.optionId) })),
+        items: cart.items.map((l) => ({ menuId: l.menuId, qty: l.qty, notes: l.notes, forName: l.forName, optionIds: l.options.map((o) => o.optionId) })),
         pointsToUse: usePoints,
       }),
     });
