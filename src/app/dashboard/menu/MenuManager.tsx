@@ -189,10 +189,10 @@ function MenuForm({ outletId, menu, emojis, cats, onClose, onSaved }: { outletId
   }
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-sumi/40 backdrop-blur-sm p-4" onClick={onClose}>
-      <div className="paper-card rounded-3xl p-6 w-full max-w-md animate-fade-up" onClick={(e) => e.stopPropagation()}>
-        <h2 className="font-display text-xl font-extrabold mb-4">{menu ? "Edit Menu" : "Menu Baru"} <span className="font-round text-shu/60 text-sm">献立</span></h2>
-        <div className="space-y-3">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-sumi/40 backdrop-blur-sm p-0 sm:p-4" onClick={onClose}>
+      <div className="paper-card rounded-t-[1.75rem] sm:rounded-3xl w-full max-w-md max-h-[90vh] flex flex-col animate-fade-up" onClick={(e) => e.stopPropagation()}>
+        <h2 className="font-display text-xl font-extrabold p-6 pb-0 shrink-0">{menu ? "Edit Menu" : "Menu Baru"} <span className="font-round text-shu/60 text-sm">献立</span></h2>
+        <div className="flex-1 overflow-y-auto scroll-thin p-6 space-y-3">
           <Field label="Nama"><input value={name} onChange={(e) => setName(e.target.value)} className="in" /></Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Kategori">
@@ -292,10 +292,10 @@ function MenuForm({ outletId, menu, emojis, cats, onClose, onSaved }: { outletId
             </div>
           </div>
           {err && <p className="text-sm text-shu bg-shu/10 rounded-lg px-3 py-2">{err}</p>}
-          <div className="flex gap-2 pt-1">
-            <Button onClick={save} disabled={saving} className="flex-1">{saving ? "Menyimpan…" : "Simpan"}</Button>
-            <Button variant="ghost" onClick={onClose}>Batal</Button>
-          </div>
+        </div>
+        <div className="flex gap-2 p-6 pt-3 border-t border-sumi/10 shrink-0">
+          <Button onClick={save} disabled={saving} className="flex-1">{saving ? "Menyimpan…" : "Simpan"}</Button>
+          <Button variant="ghost" onClick={onClose}>Batal</Button>
         </div>
       </div>
       <style>{`.in{margin-top:.25rem;width:100%;border-radius:.75rem;border:1px solid rgba(23,40,46,.15);background:rgba(247,241,227,.5);padding:.6rem .9rem;font-size:.875rem;outline:none}.in:focus{border-color:var(--color-shu);box-shadow:0 0 0 2px rgba(214,72,63,.15)}`}</style>
