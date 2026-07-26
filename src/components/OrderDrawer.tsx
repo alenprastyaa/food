@@ -24,7 +24,7 @@ export type FullOrder = {
   createdAt: string;
   outlet?: { name: string };
   items: { id: string; menuName: string; qty: number; price: number; subtotal: number; notes: string | null; forName: string | null; options: { id: string; optionName: string; priceDelta: number }[] }[];
-  payment: { status: string; amount: number; proofImage: string | null; notes: string | null } | null;
+  payment: { method: string; status: string; amount: number; proofImage: string | null; notes: string | null } | null;
 };
 
 const NEXT: Record<string, string> = { QUEUED: "COOKING", COOKING: "READY", READY: "COMPLETED" };
@@ -113,10 +113,21 @@ export default function OrderDrawer({ order, onClose, onChanged }: { order: Full
           {order.payment && (
             <div className="paper-card rounded-xl p-4">
               <div className="flex items-center justify-between mb-2">
-                <p className="font-round font-bold text-sm">Pembayaran</p>
+                <p className="font-round font-bold text-sm">Pembayaran · {order.payment.method}</p>
                 <StatusBadge label={PAYMENT_STATUS[order.payment.status]?.label} tone={PAYMENT_STATUS[order.payment.status]?.tone} />
               </div>
-              {order.payment.proofImage ? (
+              {order.payment.method === "COD" ? (
+                order.payment.status === "PAID" ? (
+                  <p className="text-xs text-emerald-600 font-bold">✓ Tunai sudah diterima.</p>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-xs text-amber-600 font-bold">💵 Bayar di tempat — belum diterima.</p>
+                    <Button variant="matcha" disabled={busy} onClick={() => act(`/api/orders/${order.id}/mark-paid`, {})} className="w-full py-2 text-sm">
+                      Tandai Sudah Dibayar
+                    </Button>
+                  </div>
+                )
+              ) : order.payment.proofImage ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={order.payment.proofImage} alt="bukti" className="rounded-lg max-h-56 w-full object-contain bg-white ring-1 ring-sumi/10" />
               ) : (

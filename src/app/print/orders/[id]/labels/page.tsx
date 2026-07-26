@@ -13,7 +13,7 @@ export default async function PrintLabelsPage({ params }: { params: Promise<{ id
 
   const order = await prisma.order.findUnique({
     where: { id },
-    include: { items: { include: { options: true } }, outlet: { select: { name: true } } },
+    include: { items: { include: { options: true } }, outlet: { select: { name: true } }, payment: true },
   });
   if (!order) notFound();
   if (!canAccessOutlet(user, order.outletId)) notFound();
@@ -46,6 +46,9 @@ export default async function PrintLabelsPage({ params }: { params: Promise<{ id
               <span>{order.orderType === "DELIVERY" ? "🛵 Delivery" : "🥡 Take Away"}</span>
               <span className="font-bold">{order.buyerName}</span>
             </div>
+            {order.payment?.method === "COD" && order.payment.status !== "PAID" && (
+              <p className="text-xs font-extrabold mt-1 bg-black text-white text-center py-1 rounded">💵 COD — TAGIH Rp{order.total.toLocaleString("id-ID")}</p>
+            )}
             <p className="text-[10px] text-sumi/50 mt-0.5">{order.outlet.name}</p>
           </div>
         ))}

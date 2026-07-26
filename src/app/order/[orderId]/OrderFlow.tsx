@@ -23,7 +23,7 @@ type OrderData = {
     pointsUsed: number;
     total: number;
     items: { id: string; menuName: string; qty: number; price: number; subtotal: number; notes: string | null; forName: string | null; options: { id: string; optionName: string; priceDelta: number }[] }[];
-    payment: { status: string; amount: number; proofImage: string | null; notes: string | null } | null;
+    payment: { method: string; status: string; amount: number; proofImage: string | null; notes: string | null } | null;
     scheduledFor: string | null;
     rating: { stars: number; comment: string | null } | null;
     outlet: {
@@ -43,6 +43,13 @@ const STEPS = [
   { key: "done", label: "Selesai", jp: "完了" },
 ];
 
+// COD skips the pay/verify steps entirely — payment happens on handoff, not upfront
+const COD_STEPS = [
+  { key: "review", label: "Review", jp: "確認" },
+  { key: "kitchen", label: "Dapur", jp: "調理" },
+  { key: "done", label: "Selesai", jp: "完了" },
+];
+
 function stepIndex(status: string) {
   if (status === "WAITING_CONFIRMATION") return 0;
   if (status === "WAITING_PAYMENT") return 1;
@@ -52,13 +59,21 @@ function stepIndex(status: string) {
   return 0;
 }
 
+function codStepIndex(status: string) {
+  if (status === "WAITING_CONFIRMATION") return 0;
+  if (status === "COMPLETED") return 2;
+  return 1;
+}
+
 export default function OrderFlow({ orderId, conversationId }: { orderId: string; conversationId: string | null }) {
   const { data, reload } = usePoll<OrderData>(`/api/orders/${orderId}`, 2500);
   const order = data?.order;
 
   if (!order) return <div className="min-h-screen bg-asanoha grid place-items-center"><p className="text-sumi/50">Memuat order…</p></div>;
 
-  const si = stepIndex(order.status);
+  const isCod = order.payment?.method === "COD";
+  const steps = isCod ? COD_STEPS : STEPS;
+  const si = isCod ? codStepIndex(order.status) : stepIndex(order.status);
   const cancelled = order.status === "CANCELLED";
 
   return (
@@ -90,7 +105,7 @@ export default function OrderFlow({ orderId, conversationId }: { orderId: string
           {!cancelled && (
             <div className="px-5 py-4 border-b border-sumi/10">
               <div className="flex items-center">
-                {STEPS.map((s, i) => (
+                {steps.map((s, i) => (
                   <div key={s.key} className="flex items-center flex-1 last:flex-none">
                     <div className="flex flex-col items-center">
                       <div className={`grid place-items-center h-8 w-8 rounded-full text-xs font-bold transition ${i <= si ? "bg-shu text-white" : "bg-sumi/10 text-sumi/40"}`}>
@@ -98,7 +113,7 @@ export default function OrderFlow({ orderId, conversationId }: { orderId: string
                       </div>
                       <span className={`text-[9px] mt-1 font-round font-bold ${i <= si ? "text-shu" : "text-sumi/30"}`}>{s.label}</span>
                     </div>
-                    {i < STEPS.length - 1 && <div className={`h-0.5 flex-1 mx-1 rounded ${i < si ? "bg-shu" : "bg-sumi/10"}`} />}
+                    {i < steps.length - 1 && <div className={`h-0.5 flex-1 mx-1 rounded ${i < si ? "bg-shu" : "bg-sumi/10"}`} />}
                   </div>
                 ))}
               </div>
@@ -182,6 +197,7 @@ function ReviewStage({ order, reload }: { order: OrderData["order"]; reload: () 
   );
   const [scheduleLater, setScheduleLater] = useState(!!order.scheduledFor);
   const [scheduledFor, setScheduledFor] = useState(order.scheduledFor ? order.scheduledFor.slice(0, 16) : "");
+  const [paymentMethod, setPaymentMethod] = useState<"QRIS" | "COD">("QRIS");
   const [locating, setLocating] = useState(false);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
@@ -227,7 +243,11 @@ function ReviewStage({ order, reload }: { order: OrderData["order"]; reload: () 
       const d = await t.json().catch(() => ({}));
       return setErr(d.error || "Gagal menyimpan.");
     }
-    const c = await fetch(`/api/orders/${order.id}/confirm`, { method: "POST" });
+    const c = await fetch(`/api/orders/${order.id}/confirm`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ paymentMethod }),
+    });
     setLoading(false);
     if (!c.ok) {
       const d = await c.json().catch(() => ({}));
@@ -284,9 +304,26 @@ function ReviewStage({ order, reload }: { order: OrderData["order"]; reload: () 
         />
       )}
 
+      <div>
+        <p className="text-sm font-round font-bold text-sumi mb-2">Metode Pembayaran</p>
+        <div className="grid grid-cols-2 gap-3">
+          {(["QRIS", "COD"] as const).map((m) => (
+            <button
+              key={m}
+              onClick={() => setPaymentMethod(m)}
+              className={`rounded-2xl p-4 text-left ring-1 transition ${paymentMethod === m ? "bg-shu/10 ring-shu shadow-[0_0_0_1px_var(--color-shu)]" : "bg-washi/50 ring-sumi/10"}`}
+            >
+              <div className="text-2xl">{m === "QRIS" ? "📱" : "💵"}</div>
+              <p className="font-round font-bold text-sm mt-1">{m === "QRIS" ? "QRIS" : "COD"}</p>
+              <p className="text-[11px] text-sumi/50">{m === "QRIS" ? "Scan & upload bukti" : "Bayar di tempat"}</p>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {err && <p className="text-sm text-shu bg-shu/10 rounded-lg px-3 py-2">{err}</p>}
       <Button onClick={confirm} disabled={loading} className="w-full py-3.5">
-        {loading ? "Memproses…" : "Konfirmasi & Lanjut Bayar →"}
+        {loading ? "Memproses…" : paymentMethod === "COD" ? "Konfirmasi Pesanan →" : "Konfirmasi & Lanjut Bayar →"}
       </Button>
     </div>
   );
@@ -401,8 +438,20 @@ function KitchenStage({ order, reload }: { order: OrderData["order"]; reload: ()
   const order2idx: Record<string, number> = { PAID: 0, QUEUED: 0, COOKING: 1, READY: 2, COMPLETED: 3 };
   const cur = order2idx[order.status] ?? 0;
 
+  const isCod = order.payment?.method === "COD";
+
   return (
     <div className="space-y-4">
+      {isCod && order.payment?.status !== "PAID" && (
+        <div className="rounded-2xl bg-amber-50 ring-1 ring-amber-200 text-amber-700 text-sm font-round font-bold px-4 py-3 text-center">
+          💵 Bayar {rupiah(order.total)} di tempat saat pesanan {order.orderType === "DELIVERY" ? "diantar" : "diambil"} (COD)
+        </div>
+      )}
+      {isCod && order.payment?.status === "PAID" && (
+        <div className="rounded-2xl bg-emerald-50 ring-1 ring-emerald-200 text-emerald-700 text-sm font-round font-bold px-4 py-3 text-center">
+          ✓ Pembayaran COD sudah diterima
+        </div>
+      )}
       <div className="paper-card rounded-2xl p-5">
         <div className="text-center mb-5">
           <div className="text-5xl mb-1 animate-float inline-block">{stages[cur].icon}</div>

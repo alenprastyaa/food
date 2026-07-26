@@ -57,6 +57,9 @@ export default function QueueBoard({ role }: { role: string }) {
                         <span className="font-round font-bold text-xs text-sumi">{o.invoiceNumber.replace("NK-", "#")}</span>
                         <span className="text-[10px] text-sumi/40">{timeAgo(o.createdAt)}</span>
                       </div>
+                      {o.payment?.method === "COD" && o.payment.status !== "PAID" && (
+                        <span className="inline-block mt-1 text-[10px] font-bold rounded-full px-2 py-0.5 bg-amber-100 text-amber-700">💵 COD · belum bayar</span>
+                      )}
                       <p className="text-sm font-round font-bold text-sumi mt-1 truncate">{o.buyerName}</p>
                       {o.scheduledFor && new Date(o.scheduledFor).getTime() > Date.now() && (
                         <p className="text-[10px] font-bold text-amber-600">🕒 {new Date(o.scheduledFor).toLocaleString("id-ID", { dateStyle: "short", timeStyle: "short" })}</p>

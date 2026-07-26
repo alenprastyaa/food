@@ -17,7 +17,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return bad("Delivery butuh alamat & lokasi GPS aktif.");
 
   const deliveryFee = orderType === "DELIVERY" ? DELIVERY_FEE : 0;
-  const total = Math.max(0, order.subtotal - order.discount - order.pointsUsed * 100 + order.tax + deliveryFee);
+  const total = Math.max(0, order.subtotal - order.discount - order.pointsUsed + order.tax + deliveryFee);
 
   const updated = await prisma.order.update({
     where: { id },
