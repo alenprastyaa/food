@@ -295,7 +295,7 @@ function CheckoutSheet({
   const [pointsBalance, setPointsBalance] = useState(0);
   const [usePoints, setUsePoints] = useState(0);
 
-  const maxRedeemable = Math.min(pointsBalance, Math.floor(subtotal / 100));
+  const maxRedeemable = Math.min(pointsBalance, subtotal);
 
   useEffect(() => {
     fetch("/api/buyer/me")
@@ -384,13 +384,13 @@ function CheckoutSheet({
                     className="w-full"
                   />
                 )}
-                {usePoints > 0 && <p className="text-xs text-shu font-bold">Pakai {usePoints} poin · potongan {rupiah(usePoints * 100)}</p>}
+                {usePoints > 0 && <p className="text-xs text-shu font-bold">Pakai {usePoints} poin · potongan {rupiah(usePoints)}</p>}
               </div>
             )}
             {err && <p className="text-sm text-shu bg-shu/10 rounded-lg px-3 py-2">{err}</p>}
             <div className="flex items-center justify-between text-sm px-1">
               <span className="text-sumi/50">Total</span>
-              <span className="font-display text-lg font-extrabold text-shu">{rupiah(Math.max(0, subtotal - usePoints * 100))}</span>
+              <span className="font-display text-lg font-extrabold text-shu">{rupiah(Math.max(0, subtotal - usePoints))}</span>
             </div>
             <Button type="submit" className="w-full py-3.5" disabled={loading || !buyerChecked}>
               {loading ? "Memproses…" : "Buat Pesanan →"}

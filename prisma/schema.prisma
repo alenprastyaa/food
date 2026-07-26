@@ -94,11 +94,12 @@ model PointTransaction {
 }
 
 model SiteSetting {
-  id           String   @id @default("singleton")
-  announcement String?
-  isActive     Boolean  @default(false)
-  themeName    String   @default("default")
-  updatedAt    DateTime @updatedAt
+  id                String   @id @default("singleton")
+  announcement      String?
+  isActive          Boolean  @default(false)
+  themeName         String   @default("default")
+  pointsEarnPercent Float    @default(1)
+  updatedAt         DateTime @updatedAt
 }
 
 model OutletPayment {

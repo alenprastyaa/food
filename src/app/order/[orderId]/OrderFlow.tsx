@@ -131,7 +131,7 @@ export default function OrderFlow({ orderId, conversationId }: { orderId: string
           <div className="px-5 py-4 bg-washi/50 border-t border-dashed border-sumi/20 space-y-1.5 text-sm">
             <Row label="Subtotal" value={rupiah(order.subtotal)} />
             {order.discount > 0 && <Row label="Diskon" value={"− " + rupiah(order.discount)} tone="text-emerald-600" />}
-            {order.pointsUsed > 0 && <Row label={`Poin (${order.pointsUsed})`} value={"− " + rupiah(order.pointsUsed * 100)} tone="text-emerald-600" />}
+            {order.pointsUsed > 0 && <Row label={`Poin (${order.pointsUsed})`} value={"− " + rupiah(order.pointsUsed)} tone="text-emerald-600" />}
             {order.tax > 0 && <Row label="Pajak / Biaya" value={rupiah(order.tax)} />}
             {order.deliveryFee > 0 && <Row label="Ongkir" value={rupiah(order.deliveryFee)} />}
             <div className="flex justify-between items-center pt-2 border-t border-sumi/10">

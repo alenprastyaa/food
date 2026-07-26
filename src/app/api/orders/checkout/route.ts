@@ -52,13 +52,13 @@ export async function POST(req: Request) {
   const buyerNameClean = String(buyerName).trim();
   const buyerPhoneClean = String(buyerPhone).trim();
 
-  // redeem loyalty points: 1 point = Rp100, capped by balance and by subtotal
+  // redeem loyalty points: 1 point = Rp1, capped by balance and by subtotal
   let pointsUsed = 0;
   const buyer = buyerSession?.id ? await prisma.buyer.findUnique({ where: { id: buyerSession.id } }) : null;
   if (buyer && pointsToUse) {
-    pointsUsed = Math.max(0, Math.min(Math.floor(Number(pointsToUse)), buyer.points, Math.floor(subtotal / 100)));
+    pointsUsed = Math.max(0, Math.min(Math.floor(Number(pointsToUse)), buyer.points, subtotal));
   }
-  const pointsValue = pointsUsed * 100;
+  const pointsValue = pointsUsed;
   const total = subtotal - pointsValue;
 
   // satu pembeli = satu percakapan berjalan per outlet — lanjutkan yang sudah ada, jangan duplikat

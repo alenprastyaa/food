@@ -23,7 +23,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   // award loyalty points once, when an order first reaches COMPLETED
   if (status === "COMPLETED" && order.status !== "COMPLETED") {
     const buyerId = order.buyerId ?? (await prisma.buyer.findUnique({ where: { phone: order.buyerPhone } }))?.id;
-    const points = Math.floor(order.total / 10000);
+    const setting = await prisma.siteSetting.findUnique({ where: { id: "singleton" } });
+    const earnPercent = setting?.pointsEarnPercent ?? 1;
+    // 1 point = Rp1, so points earned = earnPercent% of order total
+    const points = Math.floor((order.total * earnPercent) / 100);
     if (buyerId && points > 0) {
       await prisma.buyer.update({ where: { id: buyerId }, data: { points: { increment: points } } });
       await prisma.pointTransaction.create({

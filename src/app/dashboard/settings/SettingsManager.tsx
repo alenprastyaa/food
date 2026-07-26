@@ -14,6 +14,7 @@ export default function SettingsManager() {
   const [announcement, setAnnouncement] = useState("");
   const [isActive, setIsActive] = useState(false);
   const [themeName, setThemeName] = useState("default");
+  const [pointsEarnPercent, setPointsEarnPercent] = useState(1);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -25,6 +26,7 @@ export default function SettingsManager() {
         setAnnouncement(d.setting?.announcement ?? "");
         setIsActive(!!d.setting?.isActive);
         setThemeName(d.setting?.themeName ?? "default");
+        setPointsEarnPercent(d.setting?.pointsEarnPercent ?? 1);
         setLoading(false);
       });
   }, []);
@@ -35,7 +37,7 @@ export default function SettingsManager() {
     await fetch("/api/settings", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ announcement, isActive, themeName }),
+      body: JSON.stringify({ announcement, isActive, themeName, pointsEarnPercent }),
     });
     setSaving(false);
     setSaved(true);
@@ -63,6 +65,28 @@ export default function SettingsManager() {
               </button>
             ))}
           </div>
+        </div>
+
+        <div className="paper-card rounded-2xl p-6 space-y-4">
+          <div>
+            <p className="font-round font-bold text-sm text-sumi">🪙 Poin Loyalitas</p>
+            <p className="text-xs text-sumi/50 mt-0.5">1 poin = Rp1 saat ditukar. Atur berapa persen dari total belanja yang dikembalikan jadi poin.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              min={0}
+              max={100}
+              step={0.5}
+              value={pointsEarnPercent}
+              onChange={(e) => setPointsEarnPercent(Number(e.target.value))}
+              className="w-24 rounded-xl border border-sumi/15 bg-washi/40 px-4 py-2.5 text-sm outline-none focus:border-shu focus:ring-2 focus:ring-shu/20"
+            />
+            <span className="text-sm text-sumi/60">% dari total belanja</span>
+          </div>
+          <p className="text-[11px] text-sumi/40">
+            Contoh: customer bayar Rp10.000 dengan {pointsEarnPercent}% → dapat {Math.floor((10000 * pointsEarnPercent) / 100)} poin (senilai Rp{Math.floor((10000 * pointsEarnPercent) / 100)}).
+          </p>
         </div>
 
         <div className="paper-card rounded-2xl p-6 space-y-4">
