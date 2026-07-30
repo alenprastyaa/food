@@ -10,6 +10,7 @@ type OrderData = {
   order: {
     id: string;
     invoiceNumber: string;
+    queueNumber: number | null;
     status: string;
     orderType: string;
     deliveryAddress: string | null;
@@ -96,9 +97,14 @@ export default function OrderFlow({ orderId, conversationId }: { orderId: string
               <p className="font-round text-kin-light text-[11px] tracking-widest">請求書</p>
               <p className="font-display text-lg font-extrabold">{order.invoiceNumber}</p>
             </div>
-            <span className="text-xs font-round font-bold bg-shu rounded-full px-3 py-1.5">
-              {ORDER_STATUS[order.status]?.label}
-            </span>
+            <div className="flex items-center gap-2">
+              {order.queueNumber != null && (
+                <span className="text-xs font-round font-bold bg-kin text-sumi rounded-full px-3 py-1.5">#{order.queueNumber}</span>
+              )}
+              <span className="text-xs font-round font-bold bg-shu rounded-full px-3 py-1.5">
+                {ORDER_STATUS[order.status]?.label}
+              </span>
+            </div>
           </div>
 
           {/* stepper */}
@@ -382,6 +388,15 @@ function PayStage({ order, reload }: { order: OrderData["order"]; reload: () => 
         )}
         <p className="font-round font-bold text-sm mt-2">{qris?.ownerName}</p>
         <div className="mt-2 price-tag px-4 py-1.5 text-base">{rupiah(order.total)}</div>
+        {qris?.qrisImage && (
+          <a
+            href={qris.qrisImage}
+            download={`qris-${order.invoiceNumber}.png`}
+            className="mt-3 text-xs font-round font-bold text-shu hover:underline"
+          >
+            ⬇ Unduh gambar QRIS
+          </a>
+        )}
       </div>
 
       <label className="block">
@@ -450,6 +465,13 @@ function KitchenStage({ order, reload }: { order: OrderData["order"]; reload: ()
       {isCod && order.payment?.status === "PAID" && (
         <div className="rounded-2xl bg-emerald-50 ring-1 ring-emerald-200 text-emerald-700 text-sm font-round font-bold px-4 py-3 text-center">
           ✓ Pembayaran COD sudah diterima
+        </div>
+      )}
+      {order.queueNumber != null && order.status !== "COMPLETED" && (
+        <div className="paper-card rounded-2xl p-5 text-center">
+          <p className="font-round text-shu/70 text-xs tracking-widest">NOMOR ANTRIAN</p>
+          <p className="font-display font-extrabold text-5xl text-shu mt-1">#{order.queueNumber}</p>
+          <p className="text-xs text-sumi/40 mt-1">Tunjukkan nomor ini saat pengambilan pesanan</p>
         </div>
       )}
       <div className="paper-card rounded-2xl p-5">

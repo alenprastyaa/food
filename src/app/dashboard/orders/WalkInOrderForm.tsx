@@ -79,6 +79,10 @@ export default function WalkInOrderForm({ outlets, onClose, onCreated }: { outle
       const d = await res.json().catch(() => ({}));
       return setErr(d.error || "Gagal membuat order.");
     }
+    if (paymentMethod === "CASH") {
+      const d = await res.json().catch(() => null);
+      if (d?.order?.id) window.open(`/print/orders/${d.order.id}/receipt`, "_blank");
+    }
     onCreated();
   }
 

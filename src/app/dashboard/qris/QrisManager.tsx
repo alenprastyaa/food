@@ -37,7 +37,18 @@ export default function QrisManager() {
             </div>
             <p className="text-sm font-round font-bold mt-2">{o.payment?.ownerName ?? "—"}</p>
             {o.payment?.notes && <p className="text-xs text-sumi/50 mt-1">{o.payment.notes}</p>}
-            <Button variant="outline" className="w-full mt-3" onClick={() => setEditing(o)}>✎ Ubah QRIS</Button>
+            <div className="flex gap-2 mt-3">
+              {o.payment?.qrisImage && (
+                <a
+                  href={o.payment.qrisImage}
+                  download={`qris-${o.name}.png`}
+                  className="flex-1 inline-flex items-center justify-center rounded-xl ring-1 ring-sumi/15 text-sumi text-sm font-round font-bold py-2.5 hover:bg-sumi/5 transition"
+                >
+                  ⬇ Unduh
+                </a>
+              )}
+              <Button variant="outline" className="flex-1" onClick={() => setEditing(o)}>✎ Ubah</Button>
+            </div>
           </div>
         ))}
       </div>

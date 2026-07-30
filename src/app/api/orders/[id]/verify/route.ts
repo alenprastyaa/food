@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { ok, bad, authed } from "@/lib/api";
+import { ok, bad, authed, nextQueueNumber } from "@/lib/api";
 import { canAccessOutlet } from "@/lib/scope";
 
 // Cashier approves/rejects payment
@@ -15,10 +15,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (order.status !== "WAITING_PAYMENT_VERIFICATION") return bad("Tidak ada pembayaran untuk diverifikasi.", 409);
 
   if (action === "approve") {
+    const queueNumber = await nextQueueNumber(order.outletId);
     const updated = await prisma.order.update({
       where: { id },
       data: {
         status: "QUEUED",
+        queueNumber,
         payment: { update: { status: "PAID", verifiedBy: user.id, verifiedAt: new Date(), notes: notes || null } },
       },
     });

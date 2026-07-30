@@ -7,6 +7,7 @@ import { StatusBadge, Button } from "@/components/ui";
 export type FullOrder = {
   id: string;
   invoiceNumber: string;
+  queueNumber: number | null;
   status: string;
   orderType: string;
   deliveryAddress: string | null;
@@ -36,10 +37,11 @@ export default function OrderDrawer({ order, onClose, onChanged }: { order: Full
   const [showReject, setShowReject] = useState(false);
   const st = ORDER_STATUS[order.status];
 
-  async function act(url: string, body: unknown) {
+  async function act(url: string, body: unknown, printAfter = false) {
     setBusy(true);
-    await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     setBusy(false);
+    if (res.ok && printAfter) window.open(`/print/orders/${order.id}/receipt`, "_blank");
     onChanged();
   }
 
@@ -53,6 +55,12 @@ export default function OrderDrawer({ order, onClose, onChanged }: { order: Full
             <p className="font-round text-kin-light text-[11px] tracking-widest">注文詳細</p>
             <h2 className="font-display text-lg font-extrabold">{order.invoiceNumber}</h2>
           </div>
+          {order.queueNumber != null && (
+            <div className="text-right">
+              <p className="font-round text-kin-light text-[10px] tracking-widest">ANTRIAN</p>
+              <p className="font-display text-2xl font-extrabold text-kin">#{order.queueNumber}</p>
+            </div>
+          )}
           <button onClick={onClose} className="text-2xl text-washi/60 hover:text-washi">✕</button>
         </div>
 
@@ -122,7 +130,7 @@ export default function OrderDrawer({ order, onClose, onChanged }: { order: Full
                 ) : (
                   <div className="space-y-2">
                     <p className="text-xs text-amber-600 font-bold">💵 Bayar di tempat — belum diterima.</p>
-                    <Button variant="matcha" disabled={busy} onClick={() => act(`/api/orders/${order.id}/mark-paid`, {})} className="w-full py-2 text-sm">
+                    <Button variant="matcha" disabled={busy} onClick={() => act(`/api/orders/${order.id}/mark-paid`, {}, true)} className="w-full py-2 text-sm">
                       Tandai Sudah Dibayar
                     </Button>
                   </div>
@@ -142,7 +150,7 @@ export default function OrderDrawer({ order, onClose, onChanged }: { order: Full
         <div className="border-t border-sumi/10 bg-paper p-4 space-y-2">
           {order.status === "WAITING_PAYMENT_VERIFICATION" && !showReject && (
             <div className="grid grid-cols-2 gap-2">
-              <Button variant="matcha" disabled={busy} onClick={() => act(`/api/orders/${order.id}/verify`, { action: "approve" })}>✓ Approve</Button>
+              <Button variant="matcha" disabled={busy} onClick={() => act(`/api/orders/${order.id}/verify`, { action: "approve" }, true)}>✓ Approve</Button>
               <Button variant="outline" disabled={busy} onClick={() => setShowReject(true)}>✕ Tolak</Button>
             </div>
           )}

@@ -54,7 +54,11 @@ export default function QueueBoard({ role }: { role: string }) {
                   {items.map((o) => (
                     <div key={o.id} className="paper-card rounded-xl p-3">
                       <div className="flex items-center justify-between">
-                        <span className="font-round font-bold text-xs text-sumi">{o.invoiceNumber.replace("NK-", "#")}</span>
+                        {o.queueNumber != null ? (
+                          <span className="font-display font-extrabold text-base text-shu">#{o.queueNumber}</span>
+                        ) : (
+                          <span className="font-round font-bold text-xs text-sumi">{o.invoiceNumber.replace("NK-", "#")}</span>
+                        )}
                         <span className="text-[10px] text-sumi/40">{timeAgo(o.createdAt)}</span>
                       </div>
                       {o.payment?.method === "COD" && o.payment.status !== "PAID" && (

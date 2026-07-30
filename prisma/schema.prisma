@@ -196,6 +196,7 @@ model Order {
   latitude        Float?
   longitude       Float?
   scheduledFor    DateTime?
+  queueNumber     Int?
 
   subtotal    Int @default(0)
   discount    Int @default(0)

@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { ok, bad, authed } from "@/lib/api";
+import { ok, bad, authed, nextQueueNumber } from "@/lib/api";
 import { canAccessOutlet } from "@/lib/scope";
 
 const QUEUE_FLOW = ["QUEUED", "COOKING", "READY", "COMPLETED"];
@@ -18,7 +18,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const allowed = [...QUEUE_FLOW, "CANCELLED"];
   if (!allowed.includes(status)) return bad("Status tidak valid.");
 
-  const updated = await prisma.order.update({ where: { id }, data: { status } });
+  const queueNumber = status === "QUEUED" && order.queueNumber == null ? await nextQueueNumber(order.outletId) : undefined;
+  const updated = await prisma.order.update({ where: { id }, data: { status, queueNumber } });
 
   // award loyalty points once, when an order first reaches COMPLETED
   if (status === "COMPLETED" && order.status !== "COMPLETED") {

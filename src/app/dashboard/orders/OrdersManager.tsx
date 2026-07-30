@@ -84,7 +84,10 @@ export default function OrdersManager({ role, outlets }: { role: string; outlets
                 >
                   {needsAction && <span className="absolute -top-1.5 -right-1.5 h-3.5 w-3.5 rounded-full bg-violet-500 pulse-ring" />}
                   <div className="flex items-center justify-between">
-                    <span className="font-round font-bold text-sm text-sumi">{o.invoiceNumber}</span>
+                    <span className="font-round font-bold text-sm text-sumi">
+                      {o.invoiceNumber}
+                      {o.queueNumber != null && <span className="ml-1.5 text-shu">· #{o.queueNumber}</span>}
+                    </span>
                     <span className="text-[10px] text-sumi/40">{timeAgo(o.createdAt)}</span>
                   </div>
                   <div className="flex items-center justify-between mt-2">

@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { ok, bad, authed, invoiceNumber } from "@/lib/api";
+import { ok, bad, authed, invoiceNumber, nextQueueNumber } from "@/lib/api";
 import { canAccessOutlet } from "@/lib/scope";
 
 // Kasir membuat order untuk pembeli yang datang langsung ke outlet (bukan dari chat).
@@ -58,6 +58,7 @@ export async function POST(req: Request) {
   const subtotal = orderItems.reduce((s, i) => s + i.subtotal, 0);
   const isCash = paymentMethod === "CASH";
   const now = new Date();
+  const queueNumber = isCash ? await nextQueueNumber(outletId) : undefined;
 
   const order = await prisma.order.create({
     data: {
@@ -72,6 +73,7 @@ export async function POST(req: Request) {
       subtotal,
       total: subtotal,
       status: isCash ? "QUEUED" : "WAITING_PAYMENT",
+      queueNumber,
       items: { create: orderItems },
       payment: {
         create: isCash
