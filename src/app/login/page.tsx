@@ -43,12 +43,6 @@ function LoginForm() {
     doLogin(email, password);
   }
 
-  const quick = (e: string, p: string) => {
-    setEmail(e);
-    setPassword(p);
-    doLogin(e, p);
-  };
-
   return (
     <div className="min-h-screen bg-asanoha grid lg:grid-cols-2 relative overflow-hidden">
       <Petals count={7} />
@@ -115,21 +109,6 @@ function LoginForm() {
                 {loading ? "Memproses…" : "Masuk"}
               </Button>
             </form>
-
-            <div className="mt-6 pt-5 border-t border-sumi/10">
-              <p className="text-xs text-sumi/50 mb-2">Pintasan login — klik untuk langsung masuk:</p>
-              <div className="grid grid-cols-1 gap-2">
-                <button type="button" disabled={loading} onClick={() => quick("owner@nashi.id", "owner123")} className="text-left rounded-lg border border-sumi/10 px-3 py-2 text-xs hover:border-shu/40 hover:bg-shu/5 transition disabled:opacity-50">
-                  <span className="font-bold text-sumi">Owner</span> · owner@nashi.id / owner123
-                </button>
-                <button type="button" disabled={loading} onClick={() => quick("kasir1@nashi.id", "kasir123")} className="text-left rounded-lg border border-sumi/10 px-3 py-2 text-xs hover:border-shu/40 hover:bg-shu/5 transition disabled:opacity-50">
-                  <span className="font-bold text-sumi">Kasir Malioboro</span> · kasir1@nashi.id / kasir123
-                </button>
-                <button type="button" disabled={loading} onClick={() => quick("kasir2@nashi.id", "kasir123")} className="text-left rounded-lg border border-sumi/10 px-3 py-2 text-xs hover:border-shu/40 hover:bg-shu/5 transition disabled:opacity-50">
-                  <span className="font-bold text-sumi">Kasir Seturan</span> · kasir2@nashi.id / kasir123
-                </button>
-              </div>
-            </div>
           </div>
           <p className="text-center text-xs text-sumi/40 mt-6">
             Pembeli tidak perlu login — cukup buka link chat outlet.
