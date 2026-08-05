@@ -2,6 +2,7 @@
 import { useMemo, useState } from "react";
 import { usePoll } from "@/lib/hooks";
 import { PageHeader, EmptyState } from "@/components/dash";
+import { IconCalendar } from "@/components/icons";
 import { StatusBadge, Button } from "@/components/ui";
 
 type Reservation = {
@@ -16,11 +17,11 @@ type Reservation = {
   outlet?: { name: string };
 };
 
-const STATUS: Record<string, { label: string; jp: string; tone: string }> = {
-  PENDING: { label: "Menunggu", jp: "保留", tone: "amber" },
-  CONFIRMED: { label: "Dikonfirmasi", jp: "確定", tone: "sky" },
-  COMPLETED: { label: "Selesai", jp: "完了", tone: "emerald" },
-  CANCELLED: { label: "Dibatalkan", jp: "取消", tone: "rose" },
+const STATUS: Record<string, { label: string; tone: string }> = {
+  PENDING: { label: "Menunggu", tone: "amber" },
+  CONFIRMED: { label: "Dikonfirmasi", tone: "sky" },
+  COMPLETED: { label: "Selesai", tone: "emerald" },
+  CANCELLED: { label: "Dibatalkan", tone: "rose" },
 };
 
 const FILTERS = [
@@ -51,7 +52,7 @@ export default function ReservationsManager({ role }: { role: string }) {
 
   return (
     <div>
-      <PageHeader title="Reservasi" jp="予約" subtitle="Booking meja dari pembeli">
+      <PageHeader title="Reservasi" subtitle="Booking meja dari pembeli">
         <span className="text-sm text-sumi/50">{reservations.length} total</span>
       </PageHeader>
 
@@ -61,7 +62,7 @@ export default function ReservationsManager({ role }: { role: string }) {
             <button
               key={f.key}
               onClick={() => setFilter(f.key)}
-              className={`shrink-0 rounded-full px-4 py-2 text-sm font-round font-bold transition ${
+              className={`shrink-0 rounded-full px-4 py-2 text-sm font-round font-semibold transition ${
                 filter === f.key ? "bg-shu text-white shadow-[0_3px_0_var(--color-shu-dark)]" : "bg-paper text-sumi/60 ring-1 ring-sumi/10"
               }`}
             >
@@ -71,7 +72,7 @@ export default function ReservationsManager({ role }: { role: string }) {
         </div>
 
         {filtered.length === 0 ? (
-          <EmptyState icon="📅" title="Belum ada reservasi di sini" subtitle="Reservasi baru dari pembeli akan muncul otomatis." />
+          <EmptyState icon={<IconCalendar className="h-6 w-6" />} title="Belum ada reservasi di sini" subtitle="Reservasi baru dari pembeli akan muncul otomatis." />
         ) : (
           <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-3 mt-2">
             {filtered.map((r) => {
@@ -79,8 +80,8 @@ export default function ReservationsManager({ role }: { role: string }) {
               return (
                 <div key={r.id} className="paper-card rounded-2xl p-4">
                   <div className="flex items-center justify-between">
-                    <p className="font-round font-bold text-sm text-sumi">{r.buyerName}</p>
-                    <StatusBadge label={st?.label} jp={st?.jp} tone={st?.tone} />
+                    <p className="font-round font-semibold text-sm text-sumi">{r.buyerName}</p>
+                    <StatusBadge label={st?.label} tone={st?.tone} />
                   </div>
                   <p className="text-xs text-sumi/50 mt-1">
                     📅 {new Date(r.reservedFor).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" })}

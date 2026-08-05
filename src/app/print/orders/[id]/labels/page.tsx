@@ -37,7 +37,7 @@ export default async function PrintLabelsPage({ params }: { params: Promise<{ id
               <span>#{i + 1}/{labels.length}</span>
             </div>
             {l.forName && <p className="text-xs font-bold uppercase tracking-wide">👤 {l.forName}</p>}
-            <p className="text-sm font-extrabold mt-1 leading-snug">{l.menuName}</p>
+            <p className="text-sm font-bold mt-1 leading-snug">{l.menuName}</p>
             {l.options.length > 0 && (
               <p className="text-xs mt-0.5">{l.options.map((o) => o.optionName).join(", ")}</p>
             )}
@@ -47,7 +47,7 @@ export default async function PrintLabelsPage({ params }: { params: Promise<{ id
               <span className="font-bold">{order.buyerName}</span>
             </div>
             {order.payment?.method === "COD" && order.payment.status !== "PAID" && (
-              <p className="text-xs font-extrabold mt-1 bg-black text-white text-center py-1 rounded">💵 COD — TAGIH Rp{order.total.toLocaleString("id-ID")}</p>
+              <p className="text-xs font-bold mt-1 bg-black text-white text-center py-1 rounded">💵 COD — TAGIH Rp{order.total.toLocaleString("id-ID")}</p>
             )}
             <p className="text-[10px] text-sumi/50 mt-0.5">{order.outlet.name}</p>
           </div>

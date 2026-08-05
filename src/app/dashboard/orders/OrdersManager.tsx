@@ -1,9 +1,11 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { usePoll } from "@/lib/hooks";
 import { rupiah, timeAgo, ORDER_STATUS } from "@/lib/format";
 import { Button, StatusBadge } from "@/components/ui";
 import { PageHeader, EmptyState } from "@/components/dash";
+import { IconReceipt } from "@/components/icons";
 import OrderDrawer, { FullOrder } from "@/components/OrderDrawer";
 import WalkInOrderForm from "./WalkInOrderForm";
 
@@ -18,8 +20,15 @@ const FILTERS: { key: string; label: string; statuses: string[] | null }[] = [
 ];
 
 export default function OrdersManager({ role, outlets }: { role: string; outlets: { id: string; name: string }[] }) {
+  const searchParams = useSearchParams();
   const [filter, setFilter] = useState("all");
   const [selected, setSelected] = useState<string | null>(null);
+
+  // Deep link from elsewhere in the CMS (e.g. the chat thread) opens that order.
+  const deepLinkId = searchParams.get("id");
+  useEffect(() => {
+    if (deepLinkId) setSelected(deepLinkId);
+  }, [deepLinkId]);
   const [walkInOpen, setWalkInOpen] = useState(false);
   const { data, reload } = usePoll<{ orders: FullOrder[] }>("/api/orders", 4000);
   const orders = data?.orders ?? [];
@@ -46,7 +55,7 @@ export default function OrdersManager({ role, outlets }: { role: string; outlets
 
   return (
     <div>
-      <PageHeader title="Order" jp="注文" subtitle="Kelola pesanan & verifikasi pembayaran">
+      <PageHeader title="Order" subtitle="Kelola pesanan & verifikasi pembayaran">
         <div className="flex items-center gap-3">
           <span className="text-sm text-sumi/50">{orders.length} total</span>
           {outlets.length > 0 && <Button onClick={() => setWalkInOpen(true)} className="py-2">+ Order Walk-in</Button>}
@@ -59,7 +68,7 @@ export default function OrdersManager({ role, outlets }: { role: string; outlets
             <button
               key={f.key}
               onClick={() => setFilter(f.key)}
-              className={`shrink-0 rounded-full px-4 py-2 text-sm font-round font-bold transition flex items-center gap-2 ${
+              className={`shrink-0 rounded-full px-4 py-2 text-sm font-round font-semibold transition flex items-center gap-2 ${
                 filter === f.key ? "bg-shu text-white shadow-[0_3px_0_var(--color-shu-dark)]" : "bg-paper text-sumi/60 ring-1 ring-sumi/10"
               }`}
             >
@@ -70,7 +79,7 @@ export default function OrdersManager({ role, outlets }: { role: string; outlets
         </div>
 
         {filtered.length === 0 ? (
-          <EmptyState icon="🧾" title="Belum ada order di sini" subtitle="Order baru akan muncul otomatis." />
+          <EmptyState icon={<IconReceipt className="h-6 w-6" />} title="Belum ada order di sini" subtitle="Order baru akan muncul otomatis." />
         ) : (
           <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-3 mt-2">
             {filtered.map((o) => {
@@ -84,7 +93,7 @@ export default function OrdersManager({ role, outlets }: { role: string; outlets
                 >
                   {needsAction && <span className="absolute -top-1.5 -right-1.5 h-3.5 w-3.5 rounded-full bg-violet-500 pulse-ring" />}
                   <div className="flex items-center justify-between">
-                    <span className="font-round font-bold text-sm text-sumi">
+                    <span className="font-round font-semibold text-sm text-sumi">
                       {o.invoiceNumber}
                       {o.queueNumber != null && <span className="ml-1.5 text-shu">· #{o.queueNumber}</span>}
                     </span>
@@ -98,12 +107,12 @@ export default function OrdersManager({ role, outlets }: { role: string; outlets
                         {role === "OWNER" && o.outlet ? ` · ${o.outlet.name.replace("Nashi Katsu — ", "")}` : ""}
                       </p>
                     </div>
-                    <span className="font-display font-extrabold text-shu">{rupiah(o.total)}</span>
+                    <span className="font-display font-bold text-shu">{rupiah(o.total)}</span>
                   </div>
                   <div className="mt-3 flex items-center gap-1.5 flex-wrap">
-                    <StatusBadge label={st?.label} jp={st?.jp} tone={st?.tone} />
+                    <StatusBadge label={st?.label} tone={st?.tone} />
                     {isScheduled(o) && (
-                      <span className="text-[10px] font-bold rounded-full px-2 py-0.5 bg-amber-100 text-amber-700">
+                      <span className="text-[10px] font-semibold rounded-full px-2 py-0.5 bg-amber-100 text-amber-700">
                         🕒 {new Date(o.scheduledFor!).toLocaleString("id-ID", { dateStyle: "short", timeStyle: "short" })}
                       </span>
                     )}

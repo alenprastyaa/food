@@ -99,7 +99,18 @@ model SiteSetting {
   isActive          Boolean  @default(false)
   themeName         String   @default("default")
   pointsEarnPercent Float    @default(1)
-  updatedAt         DateTime @updatedAt
+
+  // Hero banner on the landing page — owner-managed from the CMS,
+  // typically to announce a new menu item.
+  bannerActive   Boolean @default(false)
+  bannerImage    String? // data URL, same convention as Menu.image / OutletPayment.qrisImage
+  bannerTag      String? // small eyebrow label, e.g. "MENU BARU"
+  bannerTitle    String?
+  bannerSubtitle String?
+  bannerCtaText  String?
+  bannerCtaHref  String?
+
+  updatedAt DateTime @updatedAt
 }
 
 model OutletPayment {

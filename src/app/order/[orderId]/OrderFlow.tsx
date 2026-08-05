@@ -1,10 +1,10 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { usePoll, fileToDataUrl } from "@/lib/hooks";
+import { usePoll } from "@/lib/hooks";
+import { uploadImage } from "@/lib/upload";
 import { Button, Logo, MenuImage } from "@/components/ui";
 import { rupiah, ORDER_STATUS } from "@/lib/format";
-import Petals from "@/components/Petals";
 
 type OrderData = {
   order: {
@@ -37,18 +37,18 @@ type OrderData = {
 };
 
 const STEPS = [
-  { key: "review", label: "Review", jp: "確認" },
-  { key: "pay", label: "Bayar", jp: "支払" },
-  { key: "verify", label: "Verifikasi", jp: "検証" },
-  { key: "kitchen", label: "Dapur", jp: "調理" },
-  { key: "done", label: "Selesai", jp: "完了" },
+  { key: "review", label: "Review" },
+  { key: "pay", label: "Bayar" },
+  { key: "verify", label: "Verifikasi" },
+  { key: "kitchen", label: "Dapur" },
+  { key: "done", label: "Selesai" },
 ];
 
 // COD skips the pay/verify steps entirely — payment happens on handoff, not upfront
 const COD_STEPS = [
-  { key: "review", label: "Review", jp: "確認" },
-  { key: "kitchen", label: "Dapur", jp: "調理" },
-  { key: "done", label: "Selesai", jp: "完了" },
+  { key: "review", label: "Review" },
+  { key: "kitchen", label: "Dapur" },
+  { key: "done", label: "Selesai" },
 ];
 
 function stepIndex(status: string) {
@@ -80,13 +80,12 @@ export default function OrderFlow({ orderId, conversationId }: { orderId: string
   return (
     <div className="min-h-screen bg-asanoha">
       <div className="noren h-2 w-full" />
-      <Petals count={6} />
       <div className="mx-auto max-w-lg px-4 py-5">
         {/* header */}
         <div className="flex items-center justify-between mb-4">
-          <Logo size={34} />
+          <Logo size={42} />
           {conversationId && (
-            <Link href={`/chat/${conversationId}`} className="text-sm font-round font-bold text-sumi/60 hover:text-shu">‹ Chat</Link>
+            <Link href={`/chat/${conversationId}`} className="text-sm font-round font-semibold text-sumi/60 hover:text-shu">‹ Chat</Link>
           )}
         </div>
 
@@ -94,14 +93,14 @@ export default function OrderFlow({ orderId, conversationId }: { orderId: string
         <div className="paper-card rounded-3xl overflow-hidden mb-4">
           <div className="bg-sumi text-washi px-5 py-4 flex items-center justify-between">
             <div>
-              <p className="font-round text-kin-light text-[11px] tracking-widest">請求書</p>
-              <p className="font-display text-lg font-extrabold">{order.invoiceNumber}</p>
+              <p className="font-round text-kin-light text-[11px] tracking-widest">STRUK PESANAN</p>
+              <p className="font-display text-lg font-bold">{order.invoiceNumber}</p>
             </div>
             <div className="flex items-center gap-2">
               {order.queueNumber != null && (
-                <span className="text-xs font-round font-bold bg-kin text-sumi rounded-full px-3 py-1.5">#{order.queueNumber}</span>
+                <span className="text-xs font-round font-semibold bg-kin text-sumi rounded-full px-3 py-1.5">#{order.queueNumber}</span>
               )}
-              <span className="text-xs font-round font-bold bg-shu rounded-full px-3 py-1.5">
+              <span className="text-xs font-round font-semibold bg-shu rounded-full px-3 py-1.5">
                 {ORDER_STATUS[order.status]?.label}
               </span>
             </div>
@@ -114,10 +113,10 @@ export default function OrderFlow({ orderId, conversationId }: { orderId: string
                 {steps.map((s, i) => (
                   <div key={s.key} className="flex items-center flex-1 last:flex-none">
                     <div className="flex flex-col items-center">
-                      <div className={`grid place-items-center h-8 w-8 rounded-full text-xs font-bold transition ${i <= si ? "bg-shu text-white" : "bg-sumi/10 text-sumi/40"}`}>
+                      <div className={`grid place-items-center h-8 w-8 rounded-full text-xs font-semibold transition ${i <= si ? "bg-shu text-white" : "bg-sumi/10 text-sumi/40"}`}>
                         {i < si ? "✓" : i + 1}
                       </div>
-                      <span className={`text-[9px] mt-1 font-round font-bold ${i <= si ? "text-shu" : "text-sumi/30"}`}>{s.label}</span>
+                      <span className={`text-[9px] mt-1 font-round font-semibold ${i <= si ? "text-shu" : "text-sumi/30"}`}>{s.label}</span>
                     </div>
                     {i < steps.length - 1 && <div className={`h-0.5 flex-1 mx-1 rounded ${i < si ? "bg-shu" : "bg-sumi/10"}`} />}
                   </div>
@@ -127,7 +126,7 @@ export default function OrderFlow({ orderId, conversationId }: { orderId: string
           )}
 
           {order.scheduledFor && (
-            <div className="px-5 py-2.5 bg-amber-50 border-b border-amber-100 text-xs font-round font-bold text-amber-700">
+            <div className="px-5 py-2.5 bg-amber-50 border-b border-amber-100 text-xs font-round font-semibold text-amber-700">
               🕒 Dijadwalkan: {new Date(order.scheduledFor).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" })}
             </div>
           )}
@@ -138,8 +137,8 @@ export default function OrderFlow({ orderId, conversationId }: { orderId: string
               <div key={it.id} className="flex items-center gap-3">
                 <MenuImage image={null} category="Katsu" className="h-11 w-11 rounded-lg shrink-0" />
                 <div className="min-w-0 flex-1">
-                  {it.forName && <p className="text-[11px] font-bold text-shu truncate">Untuk: {it.forName}</p>}
-                  <p className="font-round font-bold text-sm text-sumi truncate">{it.menuName}</p>
+                  {it.forName && <p className="text-[11px] font-semibold text-shu truncate">Untuk: {it.forName}</p>}
+                  <p className="font-round font-semibold text-sm text-sumi truncate">{it.menuName}</p>
                   {it.options.length > 0 && <p className="text-xs text-sumi/50 truncate">{it.options.map((o) => o.optionName).join(", ")}</p>}
                   <p className="text-xs text-sumi/50">{it.qty} × {rupiah(it.price)}{it.notes ? ` · ${it.notes}` : ""}</p>
                 </div>
@@ -156,8 +155,8 @@ export default function OrderFlow({ orderId, conversationId }: { orderId: string
             {order.tax > 0 && <Row label="Pajak / Biaya" value={rupiah(order.tax)} />}
             {order.deliveryFee > 0 && <Row label="Ongkir" value={rupiah(order.deliveryFee)} />}
             <div className="flex justify-between items-center pt-2 border-t border-sumi/10">
-              <span className="font-round font-bold text-sumi">Total</span>
-              <span className="font-display text-2xl font-extrabold text-shu">{rupiah(order.total)}</span>
+              <span className="font-round font-semibold text-sumi">Total</span>
+              <span className="font-display text-2xl font-bold text-shu">{rupiah(order.total)}</span>
             </div>
           </div>
         </div>
@@ -166,7 +165,7 @@ export default function OrderFlow({ orderId, conversationId }: { orderId: string
         {cancelled ? (
           <div className="paper-card rounded-2xl p-6 text-center">
             <div className="hanko h-14 w-14 text-2xl mx-auto mb-3 bg-rose-500 border-rose-700">✕</div>
-            <p className="font-display font-bold text-lg">Order Dibatalkan</p>
+            <p className="font-display font-semibold text-lg">Order Dibatalkan</p>
             <p className="text-sm text-sumi/50 mt-1">Silakan hubungi kasir jika ini keliru.</p>
           </div>
         ) : order.status === "WAITING_CONFIRMATION" ? (
@@ -264,7 +263,7 @@ function ReviewStage({ order, reload }: { order: OrderData["order"]; reload: () 
 
   return (
     <div className="paper-card rounded-2xl p-5 space-y-4">
-      <p className="font-display font-extrabold text-lg">Pilih tipe pesanan</p>
+      <p className="font-display font-bold text-lg">Pilih tipe pesanan</p>
       <div className="grid grid-cols-2 gap-3">
         {(["TAKEAWAY", "DELIVERY"] as const).map((t) => (
           <button
@@ -273,7 +272,7 @@ function ReviewStage({ order, reload }: { order: OrderData["order"]; reload: () 
             className={`rounded-2xl p-4 text-left ring-1 transition ${type === t ? "bg-shu/10 ring-shu shadow-[0_0_0_1px_var(--color-shu)]" : "bg-washi/50 ring-sumi/10"}`}
           >
             <div className="text-2xl">{t === "TAKEAWAY" ? "🥡" : "🛵"}</div>
-            <p className="font-round font-bold text-sm mt-1">{t === "TAKEAWAY" ? "Take Away" : "Delivery"}</p>
+            <p className="font-round font-semibold text-sm mt-1">{t === "TAKEAWAY" ? "Take Away" : "Delivery"}</p>
             <p className="text-[11px] text-sumi/50">{t === "TAKEAWAY" ? "Ambil di outlet" : "Diantar (+ongkir)"}</p>
           </button>
         ))}
@@ -290,7 +289,7 @@ function ReviewStage({ order, reload }: { order: OrderData["order"]; reload: () 
           />
           <button
             onClick={getLocation}
-            className={`w-full rounded-xl px-4 py-3 text-sm font-round font-bold ring-1 transition ${coords ? "bg-emerald-50 text-emerald-700 ring-emerald-200" : "bg-washi/50 text-sumi ring-sumi/15"}`}
+            className={`w-full rounded-xl px-4 py-3 text-sm font-round font-semibold ring-1 transition ${coords ? "bg-emerald-50 text-emerald-700 ring-emerald-200" : "bg-washi/50 text-sumi ring-sumi/15"}`}
           >
             {locating ? "📍 Mencari lokasi…" : coords ? `📍 Lokasi aktif (${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)})` : "📍 Aktifkan Lokasi GPS"}
           </button>
@@ -298,7 +297,7 @@ function ReviewStage({ order, reload }: { order: OrderData["order"]; reload: () 
       )}
 
       <label className="flex items-center justify-between rounded-xl bg-washi/50 ring-1 ring-sumi/10 px-4 py-3 cursor-pointer">
-        <span className="text-sm font-round font-bold text-sumi">🕒 Pesan untuk nanti?</span>
+        <span className="text-sm font-round font-semibold text-sumi">🕒 Pesan untuk nanti?</span>
         <input type="checkbox" checked={scheduleLater} onChange={(e) => setScheduleLater(e.target.checked)} />
       </label>
       {scheduleLater && (
@@ -311,7 +310,7 @@ function ReviewStage({ order, reload }: { order: OrderData["order"]; reload: () 
       )}
 
       <div>
-        <p className="text-sm font-round font-bold text-sumi mb-2">Metode Pembayaran</p>
+        <p className="text-sm font-round font-semibold text-sumi mb-2">Metode Pembayaran</p>
         <div className="grid grid-cols-2 gap-3">
           {(["QRIS", "COD"] as const).map((m) => (
             <button
@@ -320,7 +319,7 @@ function ReviewStage({ order, reload }: { order: OrderData["order"]; reload: () 
               className={`rounded-2xl p-4 text-left ring-1 transition ${paymentMethod === m ? "bg-shu/10 ring-shu shadow-[0_0_0_1px_var(--color-shu)]" : "bg-washi/50 ring-sumi/10"}`}
             >
               <div className="text-2xl">{m === "QRIS" ? "📱" : "💵"}</div>
-              <p className="font-round font-bold text-sm mt-1">{m === "QRIS" ? "QRIS" : "COD"}</p>
+              <p className="font-round font-semibold text-sm mt-1">{m === "QRIS" ? "QRIS" : "COD"}</p>
               <p className="text-[11px] text-sumi/50">{m === "QRIS" ? "Scan & upload bukti" : "Bayar di tempat"}</p>
             </button>
           ))}
@@ -340,13 +339,23 @@ function PayStage({ order, reload }: { order: OrderData["order"]; reload: () => 
   const [proof, setProof] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
+  const [uploadingProof, setUploadingProof] = useState(false);
   const qris = order.outlet.payment;
   const rejected = order.payment?.status === "REJECTED";
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    setProof(await fileToDataUrl(file));
+    setErr("");
+    setUploadingProof(true);
+    try {
+      setProof(await uploadImage(file));
+    } catch (er) {
+      setErr(er instanceof Error ? er.message : "Gagal mengunggah bukti pembayaran.");
+    } finally {
+      setUploadingProof(false);
+      e.target.value = "";
+    }
   }
 
   async function submit() {
@@ -374,8 +383,8 @@ function PayStage({ order, reload }: { order: OrderData["order"]; reload: () => 
         </div>
       )}
       <div className="text-center">
-        <p className="font-round text-shu text-xs tracking-widest">QRIS 支払い</p>
-        <p className="font-display font-extrabold text-lg">Scan & Bayar</p>
+        <p className="font-round text-shu text-xs tracking-widest">PEMBAYARAN QRIS</p>
+        <p className="font-display font-bold text-lg">Scan & Bayar</p>
         <p className="text-sm text-sumi/50">Transfer nominal persis lalu upload bukti.</p>
       </div>
 
@@ -386,13 +395,13 @@ function PayStage({ order, reload }: { order: OrderData["order"]; reload: () => 
         ) : (
           <div className="h-52 w-52 grid place-items-center text-sumi/30">QRIS belum tersedia</div>
         )}
-        <p className="font-round font-bold text-sm mt-2">{qris?.ownerName}</p>
+        <p className="font-round font-semibold text-sm mt-2">{qris?.ownerName}</p>
         <div className="mt-2 price-tag px-4 py-1.5 text-base">{rupiah(order.total)}</div>
         {qris?.qrisImage && (
           <a
             href={qris.qrisImage}
             download={`qris-${order.invoiceNumber}.png`}
-            className="mt-3 text-xs font-round font-bold text-shu hover:underline"
+            className="mt-3 text-xs font-round font-semibold text-shu hover:underline"
           >
             ⬇ Unduh gambar QRIS
           </a>
@@ -400,7 +409,7 @@ function PayStage({ order, reload }: { order: OrderData["order"]; reload: () => 
       </div>
 
       <label className="block">
-        <span className="text-sm font-round font-bold text-sumi">Bukti Pembayaran</span>
+        <span className="text-sm font-round font-semibold text-sumi">Bukti Pembayaran</span>
         <div className="mt-1.5 rounded-xl border-2 border-dashed border-sumi/20 p-4 grid place-items-center cursor-pointer hover:border-shu transition bg-washi/40">
           {proof ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -424,8 +433,8 @@ function PayStage({ order, reload }: { order: OrderData["order"]; reload: () => 
 function VerifyStage({ order }: { order: OrderData["order"] }) {
   return (
     <div className="paper-card rounded-2xl p-6 text-center">
-      <div className="hanko h-16 w-16 text-2xl mx-auto mb-3 animate-float">検</div>
-      <p className="font-display font-extrabold text-lg">Menunggu Verifikasi Kasir</p>
+      <div className="hanko h-16 w-16 text-2xl mx-auto mb-3 animate-float">🔍</div>
+      <p className="font-display font-bold text-lg">Menunggu Verifikasi Kasir</p>
       <p className="text-sm text-sumi/50 mt-1 max-w-xs mx-auto">
         Bukti pembayaranmu sedang diperiksa. Halaman ini akan otomatis diperbarui 🌸
       </p>
@@ -445,10 +454,10 @@ function VerifyStage({ order }: { order: OrderData["order"] }) {
 /* ---------- KITCHEN / STATUS ---------- */
 function KitchenStage({ order, reload }: { order: OrderData["order"]; reload: () => void }) {
   const stages = [
-    { key: "QUEUED", label: "Masuk Antrian", jp: "待機列", icon: "📋" },
-    { key: "COOKING", label: "Sedang Dimasak", jp: "調理中", icon: "🍳" },
-    { key: "READY", label: "Siap Diambil", jp: "準備完了", icon: "🍱" },
-    { key: "COMPLETED", label: "Selesai", jp: "完了", icon: "🎉" },
+    { key: "QUEUED", label: "Masuk Antrian", icon: "📋" },
+    { key: "COOKING", label: "Sedang Dimasak", icon: "🍳" },
+    { key: "READY", label: "Siap Diambil", icon: "🍱" },
+    { key: "COMPLETED", label: "Selesai", icon: "🎉" },
   ];
   const order2idx: Record<string, number> = { PAID: 0, QUEUED: 0, COOKING: 1, READY: 2, COMPLETED: 3 };
   const cur = order2idx[order.status] ?? 0;
@@ -458,27 +467,26 @@ function KitchenStage({ order, reload }: { order: OrderData["order"]; reload: ()
   return (
     <div className="space-y-4">
       {isCod && order.payment?.status !== "PAID" && (
-        <div className="rounded-2xl bg-amber-50 ring-1 ring-amber-200 text-amber-700 text-sm font-round font-bold px-4 py-3 text-center">
+        <div className="rounded-2xl bg-amber-50 ring-1 ring-amber-200 text-amber-700 text-sm font-round font-semibold px-4 py-3 text-center">
           💵 Bayar {rupiah(order.total)} di tempat saat pesanan {order.orderType === "DELIVERY" ? "diantar" : "diambil"} (COD)
         </div>
       )}
       {isCod && order.payment?.status === "PAID" && (
-        <div className="rounded-2xl bg-emerald-50 ring-1 ring-emerald-200 text-emerald-700 text-sm font-round font-bold px-4 py-3 text-center">
+        <div className="rounded-2xl bg-emerald-50 ring-1 ring-emerald-200 text-emerald-700 text-sm font-round font-semibold px-4 py-3 text-center">
           ✓ Pembayaran COD sudah diterima
         </div>
       )}
       {order.queueNumber != null && order.status !== "COMPLETED" && (
         <div className="paper-card rounded-2xl p-5 text-center">
           <p className="font-round text-shu/70 text-xs tracking-widest">NOMOR ANTRIAN</p>
-          <p className="font-display font-extrabold text-5xl text-shu mt-1">#{order.queueNumber}</p>
+          <p className="font-display font-bold text-5xl text-shu mt-1">#{order.queueNumber}</p>
           <p className="text-xs text-sumi/40 mt-1">Tunjukkan nomor ini saat pengambilan pesanan</p>
         </div>
       )}
       <div className="paper-card rounded-2xl p-5">
         <div className="text-center mb-5">
           <div className="text-5xl mb-1 animate-float inline-block">{stages[cur].icon}</div>
-          <p className="font-display font-extrabold text-xl">{stages[cur].label}</p>
-          <p className="font-round text-shu/70 text-sm">{stages[cur].jp}</p>
+          <p className="font-display font-bold text-xl">{stages[cur].label}</p>
           {order.orderType === "DELIVERY" && order.deliveryAddress && (
             <p className="text-xs text-sumi/50 mt-2">🛵 Diantar ke: {order.deliveryAddress}</p>
           )}
@@ -493,7 +501,7 @@ function KitchenStage({ order, reload }: { order: OrderData["order"]; reload: ()
                   {done ? "✓" : s.icon}
                 </div>
                 <div className="flex-1">
-                  <p className="font-round font-bold text-sm">{s.label}</p>
+                  <p className="font-round font-semibold text-sm">{s.label}</p>
                 </div>
                 {active && <span className="h-2.5 w-2.5 rounded-full bg-shu pulse-ring" />}
               </div>
@@ -516,7 +524,7 @@ function RatingCard({ order, reload }: { order: OrderData["order"]; reload: () =
   if (order.rating) {
     return (
       <div className="paper-card rounded-2xl p-5 text-center">
-        <p className="font-round font-bold text-sm text-sumi/60">Terima kasih atas ratingmu!</p>
+        <p className="font-round font-semibold text-sm text-sumi/60">Terima kasih atas ratingmu!</p>
         <p className="text-2xl mt-1">{"⭐".repeat(order.rating.stars)}</p>
         {order.rating.comment && <p className="text-sm text-sumi/50 mt-2 italic">"{order.rating.comment}"</p>}
       </div>
@@ -542,7 +550,7 @@ function RatingCard({ order, reload }: { order: OrderData["order"]; reload: () =
 
   return (
     <div className="paper-card rounded-2xl p-5 space-y-3 text-center">
-      <p className="font-display font-extrabold text-lg">Bagaimana pesananmu?</p>
+      <p className="font-display font-bold text-lg">Bagaimana pesananmu?</p>
       <div className="flex justify-center gap-1">
         {[1, 2, 3, 4, 5].map((n) => (
           <button key={n} onClick={() => setStars(n)} className="text-3xl leading-none">

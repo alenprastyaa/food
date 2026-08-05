@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import OrdersManager from "./OrdersManager";
@@ -12,5 +13,9 @@ export default async function Page() {
       : user.outletId
         ? await prisma.outlet.findMany({ where: { id: user.outletId }, select: { id: true, name: true } })
         : [];
-  return <OrdersManager role={user.role} outlets={outlets} />;
+  return (
+    <Suspense>
+      <OrdersManager role={user.role} outlets={outlets} />
+    </Suspense>
+  );
 }

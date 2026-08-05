@@ -3,7 +3,6 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Logo, Button } from "@/components/ui";
-import Petals from "@/components/Petals";
 
 export default function BuyerLoginPage() {
   return (
@@ -47,15 +46,14 @@ function BuyerLoginForm() {
 
   return (
     <div className="min-h-screen bg-asanoha grid place-items-center p-5 relative overflow-hidden">
-      <Petals count={7} />
       <div className="w-full max-w-sm animate-fade-up">
-        <div className="mb-6 flex justify-center"><Logo size={44} /></div>
+        <div className="mb-6 flex justify-center"><Logo size={56} /></div>
         <div className="paper-card rounded-[1.75rem] p-8">
           <div className="flex items-center gap-2 mb-1">
             <span className="h-2 w-2 rounded-full bg-shu" />
             <span className="font-round text-xs tracking-widest text-sumi/50 uppercase">Akun Pembeli</span>
           </div>
-          <h1 className="font-display text-2xl font-extrabold text-sumi">Masuk</h1>
+          <h1 className="font-display text-2xl font-bold text-sumi">Masuk</h1>
           <p className="text-sm text-sumi/50 mt-1">Cukup nomor HP, tanpa password. Nomor baru otomatis terdaftar.</p>
 
           <form onSubmit={submit} className="mt-6 space-y-4">

@@ -9,6 +9,16 @@ import VariantPicker, { OptionGroup } from "@/components/VariantPicker";
 
 type Menu = { id: string; name: string; category: string; description: string | null; price: number; image: string | null; optionGroups: OptionGroup[] };
 
+const ALL = "__all__";
+
+const CATEGORY_ICON: Record<string, string> = {
+  Katsu: "🍤",
+  Donburi: "🍱",
+  Snack: "🍟",
+  Drink: "🥤",
+  Extra: "🧂",
+};
+
 export default function Shop({
   outlet,
   menus,
@@ -23,7 +33,8 @@ export default function Shop({
   const router = useRouter();
   const searchParams = useSearchParams();
   const cart = useCart(outlet.id);
-  const [cat, setCat] = useState(categories[0] ?? "");
+  const [cat, setCat] = useState<string>(ALL);
+  const [query, setQuery] = useState("");
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -32,7 +43,23 @@ export default function Shop({
 
   const menuMap = useMemo(() => new Map(menus.map((m) => [m.id, m])), [menus]);
   const subtotal = cart.items.reduce((s, l) => s + ((menuMap.get(l.menuId)?.price ?? 0) + l.options.reduce((a, o) => a + o.priceDelta, 0)) * l.qty, 0);
-  const filtered = menus.filter((m) => m.category === cat);
+
+  const q = query.trim().toLowerCase();
+  const visible = useMemo(
+    () =>
+      menus.filter((m) => {
+        if (cat !== ALL && m.category !== cat) return false;
+        if (!q) return true;
+        return m.name.toLowerCase().includes(q) || (m.description ?? "").toLowerCase().includes(q);
+      }),
+    [menus, cat, q]
+  );
+
+  // Group into sections so "Semua Menu" reads as one list per category.
+  const sections = useMemo(
+    () => categories.map((c) => ({ category: c, items: visible.filter((m) => m.category === c) })).filter((s) => s.items.length > 0),
+    [categories, visible]
+  );
 
   function addToCart(m: Menu) {
     if (m.optionGroups.length > 0) setVariantMenu(m);
@@ -52,89 +79,144 @@ export default function Shop({
   }, [searchParams, cart.hydrated, menuMap]);
 
   return (
-    <div className="space-y-4 pb-24">
-      {/* outlet hero */}
-      <div className="paper-card rounded-3xl overflow-hidden">
-        <div className="bg-sumi text-washi p-5 relative overflow-hidden">
-          <div className="absolute -right-6 -top-8 font-display text-8xl text-shu/20 select-none">丼</div>
-          <p className="font-round text-kin-light text-xs tracking-[0.3em] relative">いらっしゃいませ</p>
-          <h1 className="font-display text-2xl font-extrabold mt-1 relative">{outlet.name}</h1>
-          <p className="text-washi/60 text-sm mt-2 relative">📍 {outlet.address}</p>
-          {rating && <p className="text-kin-light text-sm mt-1 relative">⭐ {rating.avg.toFixed(1)} · {rating.count} rating</p>}
+    <div className="space-y-4 pb-28">
+      {/* outlet header */}
+      <div className="rounded-xl bg-white border border-gray-6 p-5">
+        <h1 className="text-2xl font-semibold text-dark-1 tracking-tight">{outlet.name}</h1>
+        <p className="text-dark-2 text-sm mt-1.5">{outlet.address}</p>
+        <div className="flex items-center gap-3 mt-1 text-sm">
+          {rating && (
+            <span className="text-gray-8 font-medium">
+              <span className="text-warning-light">★</span> {rating.avg.toFixed(1)}
+              <span className="text-gray-8 font-normal"> ({rating.count} ulasan)</span>
+            </span>
+          )}
         </div>
-        <div className="p-4 flex items-center justify-between gap-2">
-          <p className="text-xs text-sumi/50">Pilih menu, masukkan keranjang, lalu checkout.</p>
-          <div className="flex items-center gap-1.5 shrink-0">
-            <button onClick={() => setReserveOpen(true)} className="text-xs font-round font-bold text-shu bg-shu/10 rounded-full px-3 py-1.5 hover:bg-shu/20 transition">
-              📅 Reservasi
-            </button>
-            <button onClick={() => setHelpOpen(true)} className="text-xs font-round font-bold text-shu bg-shu/10 rounded-full px-3 py-1.5 hover:bg-shu/20 transition">
-              💬 Tanya Kasir
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* category tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto scroll-thin pb-1 -mx-1 px-1 sticky top-[68px] z-10 bg-asanoha/95 backdrop-blur py-1">
-        {categories.map((c) => (
+        <div className="flex items-center gap-2 mt-4">
           <button
-            key={c}
-            onClick={() => setCat(c)}
-            className={`shrink-0 rounded-full px-4 py-2 text-sm font-round font-bold transition ${
-              cat === c ? "bg-shu text-white shadow-[0_3px_0_var(--color-shu-dark)]" : "bg-paper text-sumi/60 ring-1 ring-sumi/10"
-            }`}
+            onClick={() => setReserveOpen(true)}
+            className="text-xs font-semibold text-primary bg-white border border-primary rounded-lg px-3 py-2 hover:bg-primary hover:text-white transition"
           >
-            {c}
+            Reservasi Meja
           </button>
-        ))}
+          <button
+            onClick={() => setHelpOpen(true)}
+            className="text-xs font-semibold text-gray-8 bg-white border border-gray-6 rounded-lg px-3 py-2 hover:bg-gray-3 transition"
+          >
+            Tanya Kasir
+          </button>
+        </div>
       </div>
 
-      {/* menu grid */}
-      <div className="grid grid-cols-2 gap-3">
-        {filtered.map((m) => {
-          const hasVariants = m.optionGroups.length > 0;
-          const qty = hasVariants
-            ? cart.items.filter((l) => l.menuId === m.id).reduce((s, l) => s + l.qty, 0)
-            : cart.lines[m.id]?.qty ?? 0;
-          return (
-            <div key={m.id} className="paper-card rounded-2xl overflow-hidden flex flex-col min-w-0">
-              <MenuImage image={m.image} category={m.category} className="aspect-square w-full" />
-              <div className="p-3 flex flex-col flex-1">
-                <p className="font-round font-bold text-sm text-sumi leading-snug line-clamp-2">{m.name}</p>
-                <p className="text-[11px] text-sumi/40 line-clamp-2 mt-0.5 flex-1">{m.description}</p>
-                <div className="flex items-center justify-between mt-2">
-                  <span className="price-tag text-xs px-2 py-1">{rupiah(m.price)}</span>
-                  {hasVariants && <span className="text-[10px] text-sumi/40">ada varian</span>}
-                </div>
-                <div className="mt-2">
-                  {hasVariants ? (
-                    <button
-                      onClick={() => setVariantMenu(m)}
-                      className="w-full rounded-lg bg-sumi text-washi text-xs font-round font-bold py-2 btn-press hover:bg-sumi-soft"
-                    >
-                      {qty > 0 ? `+ Tambah (${qty} di keranjang)` : "+ Pilih Varian"}
-                    </button>
-                  ) : qty === 0 ? (
-                    <button
-                      onClick={() => cart.addLine(m.id, [])}
-                      className="w-full rounded-lg bg-sumi text-washi text-xs font-round font-bold py-2 btn-press hover:bg-sumi-soft"
-                    >
-                      + Tambah
-                    </button>
-                  ) : (
-                    <div className="flex items-center justify-between bg-shu/10 rounded-lg p-1">
-                      <button onClick={() => cart.setQty(m.id, qty - 1)} className="h-7 w-7 rounded-md bg-white text-shu font-bold btn-press shadow-sm">−</button>
-                      <span className="font-display font-extrabold text-sm text-shu">{qty}</span>
-                      <button onClick={() => cart.setQty(m.id, qty + 1)} className="h-7 w-7 rounded-md bg-shu text-white font-bold btn-press">+</button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          );
-        })}
+      {/* search + category rail */}
+      <div className="sticky top-14 z-20 -mx-4 px-4 py-3 bg-gray-3/95 backdrop-blur space-y-3">
+        <div className="relative">
+          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-2 text-sm">🔎</span>
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Cari makanan atau minuman…"
+            className="w-full h-11 rounded-lg border border-gray-6 bg-white pl-10 pr-4 text-sm text-dark-1 placeholder:text-gray-2 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition"
+          />
+        </div>
+
+        <div className="flex gap-3 overflow-x-auto no-scrollbar whitespace-nowrap">
+          <CategoryChip
+            active={cat === ALL}
+            icon="🍽️"
+            label="Semua Menu"
+            count={`${menus.length} Menu`}
+            onClick={() => setCat(ALL)}
+          />
+          {categories.map((c) => (
+            <CategoryChip
+              key={c}
+              active={cat === c}
+              icon={CATEGORY_ICON[c] ?? "🍽️"}
+              label={c}
+              count={`${menus.filter((m) => m.category === c).length} Menu`}
+              onClick={() => setCat(c)}
+            />
+          ))}
+        </div>
       </div>
+
+      {/* menu sections */}
+      {sections.length === 0 ? (
+        <div className="section-card text-center py-12">
+          <p className="text-4xl mb-3">🔍</p>
+          <p className="font-semibold text-dark-2">Menu tidak ditemukan</p>
+          <p className="text-sm text-gray-5 mt-1">Coba kata kunci atau kategori lain.</p>
+        </div>
+      ) : (
+        sections.map((s) => (
+          <div key={s.category} className="section-card">
+            <h3 className="section-heading text-lg font-semibold text-dark-2">{s.category}</h3>
+            <div className="grid grid-cols-2 gap-x-5 gap-y-8 pt-6 md:grid-cols-3">
+              {s.items.map((m) => {
+                const hasVariants = m.optionGroups.length > 0;
+                const qty = hasVariants
+                  ? cart.items.filter((l) => l.menuId === m.id).reduce((sum, l) => sum + l.qty, 0)
+                  : cart.lines[m.id]?.qty ?? 0;
+                return (
+                  <div key={m.id} className="flex h-full flex-col min-w-0">
+                    <div className="relative flex h-40 justify-center overflow-hidden rounded-md bg-gray-3 md:h-48">
+                      <MenuImage image={m.image} category={m.category} big className="h-full w-full" />
+                    </div>
+
+                    <div className="flex flex-1 flex-col justify-between pt-2">
+                      <div>
+                        <h4 className="line-clamp-1 pb-1 text-sm font-semibold text-dark-2">{m.name}</h4>
+                        {m.description && <p className="mb-1 line-clamp-2 text-xs text-dark-2">{m.description}</p>}
+                        <div className="text-xs text-dark-1">
+                          <span className="font-semibold">{rupiah(m.price)}</span>
+                          {hasVariants && <span className="text-gray-8 font-normal"> • ada varian</span>}
+                        </div>
+                      </div>
+
+                      <div className="mt-4">
+                        {hasVariants ? (
+                          <button
+                            onClick={() => setVariantMenu(m)}
+                            className="btn-press h-9 w-full rounded-lg border border-primary bg-white text-xs font-semibold text-primary shadow-sm hover:bg-primary hover:text-white transition"
+                          >
+                            {qty > 0 ? `${qty} Item` : "Pilih Varian"}
+                          </button>
+                        ) : qty === 0 ? (
+                          <button
+                            onClick={() => cart.addLine(m.id, [])}
+                            className="btn-press h-9 w-full rounded-lg border border-primary bg-white text-xs font-semibold text-primary shadow-sm hover:bg-primary hover:text-white transition"
+                          >
+                            Tambah
+                          </button>
+                        ) : (
+                          <div className="flex items-center justify-center gap-3">
+                            <button
+                              onClick={() => cart.setQty(m.id, qty - 1)}
+                              aria-label="Kurangi"
+                              className="h-7 w-7 rounded-full border border-primary text-lg font-semibold leading-none text-primary hover:bg-primary hover:text-white transition"
+                            >
+                              −
+                            </button>
+                            <span className="w-7 text-center text-sm font-semibold text-dark-1">{qty}</span>
+                            <button
+                              onClick={() => cart.setQty(m.id, qty + 1)}
+                              aria-label="Tambah"
+                              className="h-7 w-7 rounded-full border border-primary text-lg font-semibold leading-none text-primary hover:bg-primary hover:text-white transition"
+                            >
+                              +
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))
+      )}
 
       {variantMenu && (
         <VariantPicker
@@ -152,21 +234,17 @@ export default function Shop({
         />
       )}
 
-      {/* sticky cart bar */}
+      {/* floating cart bar */}
       {cart.count > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-30 p-3 bg-gradient-to-t from-washi via-washi/95 to-transparent">
+        <div className="fixed bottom-0 left-0 right-0 z-30 mx-auto max-w-5xl p-4">
           <button
             onClick={() => setCartOpen(true)}
-            className="mx-auto max-w-2xl w-full flex items-center justify-between rounded-2xl bg-sumi text-washi px-5 py-3.5 shadow-xl btn-press"
+            className="shadow-float btn-press flex w-full items-center justify-between overflow-hidden rounded-full bg-primary px-6 py-3.5 text-sm font-semibold text-white hover:bg-primary-hover transition"
           >
-            <span className="flex items-center gap-2 font-round font-bold text-sm">
-              <span className="relative">
-                🛒
-                <span className="absolute -top-2 -right-2 h-4 w-4 grid place-items-center rounded-full bg-shu text-[10px] font-bold">{cart.count}</span>
-              </span>
-              Lihat Keranjang
+            <span className="font-medium">
+              {cart.count} Item <span className="opacity-60">•</span> {rupiah(subtotal)}
             </span>
-            <span className="font-display font-extrabold">{rupiah(subtotal)}</span>
+            <span>Checkout</span>
           </button>
         </div>
       )}
@@ -198,6 +276,39 @@ export default function Shop({
   );
 }
 
+function CategoryChip({
+  active,
+  icon,
+  label,
+  count,
+  onClick,
+}: {
+  active: boolean;
+  icon: string;
+  label: string;
+  count: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`btn-press shrink-0 rounded-lg border p-2 text-left transition ${
+        active ? "bg-gradient-category border-transparent" : "bg-white border-gray-4 hover:bg-gray-3"
+      }`}
+    >
+      <div className="flex items-center gap-3">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-gray-4 bg-gray-3 text-base">
+          {icon}
+        </span>
+        <span className="flex flex-col items-start justify-between">
+          <span className={`text-xs font-normal ${active ? "text-white/80" : "text-gray-5"}`}>{label}</span>
+          <span className={`text-sm font-semibold ${active ? "text-white" : "text-dark-1"}`}>{count}</span>
+        </span>
+      </div>
+    </button>
+  );
+}
+
 function CartSheet({
   outlet,
   cart,
@@ -214,47 +325,47 @@ function CartSheet({
   onCheckout: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-sumi/40 backdrop-blur-sm" onClick={onClose}>
-      <div className="w-full max-w-lg bg-washi rounded-t-[1.75rem] max-h-[85vh] flex flex-col animate-fade-up" onClick={(e) => e.stopPropagation()}>
-        <div className="p-5 border-b border-sumi/10 flex items-center justify-between">
-          <h2 className="font-display text-xl font-extrabold">Keranjang <span className="font-round text-shu/60 text-sm">カート</span></h2>
-          <button onClick={onClose} className="text-2xl text-sumi/40 hover:text-sumi">✕</button>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-overlay-2 backdrop-blur-sm" onClick={onClose}>
+      <div className="w-full max-w-lg bg-white rounded-t-2xl max-h-[85vh] flex flex-col animate-fade-up" onClick={(e) => e.stopPropagation()}>
+        <div className="p-5 border-b border-gray-4 flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-dark-1">Keranjang</h2>
+          <button onClick={onClose} className="text-2xl leading-none text-gray-2 hover:text-dark-1">✕</button>
         </div>
         <div className="flex-1 overflow-y-auto scroll-thin p-4 space-y-2.5">
           {cart.items.length === 0 ? (
-            <p className="text-center text-sm text-sumi/40 py-8">Keranjang kosong.</p>
+            <p className="text-center text-sm text-gray-5 py-8">Keranjang kosong.</p>
           ) : (
             cart.items.map((l) => {
               const m = menuMap.get(l.menuId);
               if (!m) return null;
               const unitPrice = m.price + l.options.reduce((s, o) => s + o.priceDelta, 0);
               return (
-                <div key={l.key} className="paper-card rounded-xl p-2.5 flex items-center gap-3">
-                  <MenuImage image={m.image} category={m.category} className="h-14 w-14 rounded-lg shrink-0" />
+                <div key={l.key} className="rounded-lg border border-gray-6 bg-white p-2.5 flex items-center gap-3">
+                  <MenuImage image={m.image} category={m.category} className="h-14 w-14 rounded-md shrink-0" />
                   <div className="min-w-0 flex-1">
-                    <p className="font-round font-bold text-sm truncate">{m.name}</p>
+                    <p className="font-semibold text-sm text-dark-2 truncate">{m.name}</p>
                     {l.options.length > 0 && (
-                      <p className="text-[11px] text-sumi/50 truncate">{l.options.map((o) => o.name).join(", ")}</p>
+                      <p className="text-[11px] text-gray-5 truncate">{l.options.map((o) => o.name).join(", ")}</p>
                     )}
-                    <p className="text-xs text-shu font-bold">{rupiah(unitPrice)}</p>
+                    <p className="text-xs text-primary font-semibold">{rupiah(unitPrice)}</p>
                     <input
                       value={l.forName}
                       onChange={(e) => cart.setForName(l.key, e.target.value)}
                       placeholder="Untuk siapa? (misal: Ainun) — opsional"
-                      className="mt-1 w-full text-xs rounded-md border border-sumi/10 bg-washi/50 px-2 py-1 outline-none focus:border-shu"
+                      className="mt-1 w-full text-xs rounded-md border border-gray-4 bg-gray-3 px-2 py-1 outline-none placeholder:text-gray-2 focus:border-primary focus:bg-white"
                     />
                     <input
                       value={l.notes}
                       onChange={(e) => cart.setNotes(l.key, e.target.value)}
                       placeholder="Catatan (opsional)…"
-                      className="mt-1 w-full text-xs rounded-md border border-sumi/10 bg-washi/50 px-2 py-1 outline-none focus:border-shu"
+                      className="mt-1 w-full text-xs rounded-md border border-gray-4 bg-gray-3 px-2 py-1 outline-none placeholder:text-gray-2 focus:border-primary focus:bg-white"
                     />
                   </div>
                   <div className="flex flex-col items-end gap-1.5 shrink-0">
-                    <div className="flex items-center gap-1.5">
-                      <button onClick={() => cart.setQty(l.key, l.qty - 1)} className="h-6 w-6 rounded-md bg-sumi/10 text-sumi font-bold text-xs btn-press">−</button>
-                      <span className="w-4 text-center font-display font-bold text-sm">{l.qty}</span>
-                      <button onClick={() => cart.setQty(l.key, l.qty + 1)} className="h-6 w-6 rounded-md bg-shu text-white font-bold text-xs btn-press">+</button>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => cart.setQty(l.key, l.qty - 1)} className="h-6 w-6 rounded-full border border-primary text-primary font-semibold text-sm leading-none btn-press hover:bg-primary hover:text-white transition">−</button>
+                      <span className="w-4 text-center font-semibold text-sm text-dark-1">{l.qty}</span>
+                      <button onClick={() => cart.setQty(l.key, l.qty + 1)} className="h-6 w-6 rounded-full border border-primary text-primary font-semibold text-sm leading-none btn-press hover:bg-primary hover:text-white transition">+</button>
                     </div>
                   </div>
                 </div>
@@ -262,12 +373,12 @@ function CartSheet({
             })
           )}
         </div>
-        <div className="p-4 border-t border-sumi/10 bg-paper">
+        <div className="p-4 border-t border-gray-4 bg-white shadow-bottom">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-sm text-sumi/50">Subtotal ({cart.count} item)</span>
-            <span className="font-display text-xl font-extrabold text-shu">{rupiah(subtotal)}</span>
+            <span className="text-sm text-gray-5">Subtotal ({cart.count} item)</span>
+            <span className="text-xl font-semibold text-dark-1">{rupiah(subtotal)}</span>
           </div>
-          <Button onClick={onCheckout} disabled={cart.items.length === 0} className="w-full py-3.5">Checkout →</Button>
+          <Button onClick={onCheckout} disabled={cart.items.length === 0} className="w-full py-3.5 rounded-full">Checkout</Button>
         </div>
       </div>
     </div>
@@ -337,14 +448,14 @@ function CheckoutSheet({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-sumi/40 backdrop-blur-sm p-0 sm:p-4" onClick={onClose}>
-      <div className="w-full max-w-sm bg-washi rounded-t-[1.75rem] sm:rounded-3xl paper-card animate-fade-up" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-overlay-2 backdrop-blur-sm p-0 sm:p-4" onClick={onClose}>
+      <div className="w-full max-w-sm bg-white rounded-t-2xl sm:rounded-2xl border border-gray-4 animate-fade-up" onClick={(e) => e.stopPropagation()}>
         <div className="p-6">
           <div className="flex justify-center mb-3">
-            <span className="hanko h-12 w-12 text-xl">梨</span>
+            <span className="hanko h-12 w-12 text-xl">🧾</span>
           </div>
-          <h3 className="font-display text-xl font-extrabold text-center">Checkout</h3>
-          <p className="text-sm text-sumi/50 text-center mt-1">{cart.count} item · {rupiah(subtotal)}</p>
+          <h3 className="text-xl font-semibold text-center text-dark-1">Checkout</h3>
+          <p className="text-sm text-gray-5 text-center mt-1">{cart.count} item · {rupiah(subtotal)}</p>
 
           <form onSubmit={submit} className="mt-5 space-y-3">
             <input
@@ -352,7 +463,7 @@ function CheckoutSheet({
               onChange={(e) => setName(e.target.value)}
               placeholder="Nama kamu"
               disabled={!buyerChecked}
-              className="w-full rounded-xl border border-sumi/15 bg-washi/40 px-4 py-3 text-sm outline-none focus:border-shu focus:ring-2 focus:ring-shu/20 disabled:opacity-50"
+              className="w-full rounded-lg border border-gray-6 bg-white px-4 py-3 text-sm text-dark-1 placeholder:text-gray-2 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 disabled:opacity-50"
             />
             <input
               value={phone}
@@ -360,16 +471,16 @@ function CheckoutSheet({
               placeholder="Nomor WhatsApp (08…)"
               inputMode="tel"
               disabled={!buyerChecked}
-              className="w-full rounded-xl border border-sumi/15 bg-washi/40 px-4 py-3 text-sm outline-none focus:border-shu focus:ring-2 focus:ring-shu/20 disabled:opacity-50"
+              className="w-full rounded-lg border border-gray-6 bg-white px-4 py-3 text-sm text-dark-1 placeholder:text-gray-2 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 disabled:opacity-50"
             />
             {pointsBalance > 0 && (
-              <div className="rounded-xl bg-shu/5 ring-1 ring-shu/15 p-3 space-y-1.5">
+              <div className="rounded-lg bg-primary-light border border-[#FEE4E2] p-3 space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-sumi/60">🪙 Poin kamu: {pointsBalance}</span>
+                  <span className="text-gray-5">🪙 Poin kamu: {pointsBalance}</span>
                   <button
                     type="button"
                     onClick={() => setUsePoints(usePoints > 0 ? 0 : maxRedeemable)}
-                    className="font-bold text-shu hover:underline"
+                    className="font-semibold text-primary hover:underline"
                   >
                     {usePoints > 0 ? "Batal pakai" : "Pakai maksimal"}
                   </button>
@@ -384,21 +495,21 @@ function CheckoutSheet({
                     className="w-full"
                   />
                 )}
-                {usePoints > 0 && <p className="text-xs text-shu font-bold">Pakai {usePoints} poin · potongan {rupiah(usePoints)}</p>}
+                {usePoints > 0 && <p className="text-xs text-primary font-semibold">Pakai {usePoints} poin · potongan {rupiah(usePoints)}</p>}
               </div>
             )}
-            {err && <p className="text-sm text-shu bg-shu/10 rounded-lg px-3 py-2">{err}</p>}
+            {err && <p className="text-sm text-primary bg-primary-light rounded-lg px-3 py-2">{err}</p>}
             <div className="flex items-center justify-between text-sm px-1">
-              <span className="text-sumi/50">Total</span>
-              <span className="font-display text-lg font-extrabold text-shu">{rupiah(Math.max(0, subtotal - usePoints))}</span>
+              <span className="text-gray-5">Total</span>
+              <span className="text-lg font-semibold text-primary">{rupiah(Math.max(0, subtotal - usePoints))}</span>
             </div>
             <Button type="submit" className="w-full py-3.5" disabled={loading || !buyerChecked}>
               {loading ? "Memproses…" : "Buat Pesanan →"}
             </Button>
-            <button type="button" onClick={onClose} className="w-full text-center text-sm text-sumi/50 hover:text-sumi py-1">Batal</button>
+            <button type="button" onClick={onClose} className="w-full text-center text-sm text-gray-5 hover:text-dark-1 py-1">Batal</button>
           </form>
-          <p className="text-center text-[11px] text-sumi/40 mt-3">
-            Belum punya akun? <Link href="/account/register" className="text-shu font-bold hover:underline">Daftar</Link> biar checkout lebih cepat lain kali.
+          <p className="text-center text-[11px] text-gray-5 mt-3">
+            Belum punya akun? <Link href="/account/register" className="text-primary font-semibold hover:underline">Daftar</Link> biar checkout lebih cepat lain kali.
           </p>
         </div>
       </div>
@@ -445,28 +556,28 @@ function HelpChatSheet({ outlet, onClose }: { outlet: { id: string; name: string
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-sumi/40 backdrop-blur-sm p-4" onClick={onClose}>
-      <div className="paper-card rounded-3xl p-6 w-full max-w-sm animate-fade-up" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-overlay-2 backdrop-blur-sm p-4" onClick={onClose}>
+      <div className="bg-white border border-gray-6 rounded-2xl p-6 w-full max-w-sm animate-fade-up" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-center mb-3">
           <span className="hanko h-12 w-12 text-xl">💬</span>
         </div>
-        <h3 className="font-display text-xl font-extrabold text-center">Tanya Kasir Dulu?</h3>
-        <p className="text-sm text-sumi/50 text-center mt-1">Untuk pertanyaan sebelum order — bukan untuk checkout.</p>
+        <h3 className="text-xl font-semibold text-center text-dark-1">Tanya Kasir Dulu?</h3>
+        <p className="text-sm text-gray-5 text-center mt-1">Untuk pertanyaan sebelum order — bukan untuk checkout.</p>
         <form onSubmit={start} className="mt-5 space-y-3">
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Nama kamu"
-            className="w-full rounded-xl border border-sumi/15 bg-washi/40 px-4 py-3 text-sm outline-none focus:border-shu focus:ring-2 focus:ring-shu/20"
+            className="w-full rounded-lg border border-gray-6 bg-white px-4 py-3 text-sm text-dark-1 placeholder:text-gray-2 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
           />
           <input
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             placeholder="Nomor WhatsApp (08…)"
             inputMode="tel"
-            className="w-full rounded-xl border border-sumi/15 bg-washi/40 px-4 py-3 text-sm outline-none focus:border-shu focus:ring-2 focus:ring-shu/20"
+            className="w-full rounded-lg border border-gray-6 bg-white px-4 py-3 text-sm text-dark-1 placeholder:text-gray-2 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
           />
-          {err && <p className="text-sm text-shu bg-shu/10 rounded-lg px-3 py-2">{err}</p>}
+          {err && <p className="text-sm text-primary bg-primary-light rounded-lg px-3 py-2">{err}</p>}
           <Button type="submit" className="w-full py-3.5" disabled={loading}>
             {loading ? "Membuka chat…" : "Mulai Chat →"}
           </Button>
@@ -517,13 +628,13 @@ function ReservationSheet({ outlet, onClose }: { outlet: { id: string; name: str
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-sumi/40 backdrop-blur-sm p-4" onClick={onClose}>
-      <div className="paper-card rounded-3xl p-6 w-full max-w-sm animate-fade-up" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-overlay-2 backdrop-blur-sm p-4" onClick={onClose}>
+      <div className="bg-white border border-gray-6 rounded-2xl p-6 w-full max-w-sm animate-fade-up" onClick={(e) => e.stopPropagation()}>
         {done ? (
           <div className="text-center py-4">
             <div className="hanko h-14 w-14 text-2xl mx-auto mb-3">📅</div>
-            <p className="font-display text-xl font-extrabold">Reservasi Terkirim!</p>
-            <p className="text-sm text-sumi/50 mt-1">Kasir akan mengonfirmasi reservasimu segera.</p>
+            <p className="text-xl font-semibold text-dark-1">Reservasi Terkirim!</p>
+            <p className="text-sm text-gray-5 mt-1">Kasir akan mengonfirmasi reservasimu segera.</p>
             <Button onClick={onClose} className="w-full mt-4">Tutup</Button>
           </div>
         ) : (
@@ -531,40 +642,40 @@ function ReservationSheet({ outlet, onClose }: { outlet: { id: string; name: str
             <div className="flex justify-center mb-3">
               <span className="hanko h-12 w-12 text-xl">📅</span>
             </div>
-            <h3 className="font-display text-xl font-extrabold text-center">Reservasi Meja</h3>
-            <p className="text-sm text-sumi/50 text-center mt-1">{outlet.name}</p>
+            <h3 className="text-xl font-semibold text-center text-dark-1">Reservasi Meja</h3>
+            <p className="text-sm text-gray-5 text-center mt-1">{outlet.name}</p>
             <form onSubmit={submit} className="mt-5 space-y-3">
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Nama kamu"
-                className="w-full rounded-xl border border-sumi/15 bg-washi/40 px-4 py-3 text-sm outline-none focus:border-shu focus:ring-2 focus:ring-shu/20"
+                className="w-full rounded-lg border border-gray-6 bg-white px-4 py-3 text-sm text-dark-1 placeholder:text-gray-2 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
               />
               <input
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="Nomor WhatsApp (08…)"
                 inputMode="tel"
-                className="w-full rounded-xl border border-sumi/15 bg-washi/40 px-4 py-3 text-sm outline-none focus:border-shu focus:ring-2 focus:ring-shu/20"
+                className="w-full rounded-lg border border-gray-6 bg-white px-4 py-3 text-sm text-dark-1 placeholder:text-gray-2 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
               />
               <div className="grid grid-cols-2 gap-3">
                 <label className="block">
-                  <span className="text-xs text-sumi/50">Jumlah Orang</span>
+                  <span className="text-xs text-gray-5">Jumlah Orang</span>
                   <input
                     type="number"
                     min={1}
                     value={partySize}
                     onChange={(e) => setPartySize(Math.max(1, Number(e.target.value)))}
-                    className="mt-1 w-full rounded-xl border border-sumi/15 bg-washi/40 px-4 py-2.5 text-sm outline-none focus:border-shu"
+                    className="mt-1 w-full rounded-lg border border-gray-6 bg-white px-4 py-2.5 text-sm text-dark-1 outline-none focus:border-primary"
                   />
                 </label>
                 <label className="block">
-                  <span className="text-xs text-sumi/50">Tanggal & Jam</span>
+                  <span className="text-xs text-gray-5">Tanggal & Jam</span>
                   <input
                     type="datetime-local"
                     value={reservedFor}
                     onChange={(e) => setReservedFor(e.target.value)}
-                    className="mt-1 w-full rounded-xl border border-sumi/15 bg-washi/40 px-4 py-2.5 text-sm outline-none focus:border-shu"
+                    className="mt-1 w-full rounded-lg border border-gray-6 bg-white px-4 py-2.5 text-sm text-dark-1 outline-none focus:border-primary"
                   />
                 </label>
               </div>
@@ -572,13 +683,13 @@ function ReservationSheet({ outlet, onClose }: { outlet: { id: string; name: str
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Catatan (opsional)…"
-                className="w-full rounded-xl border border-sumi/15 bg-washi/40 px-4 py-3 text-sm outline-none focus:border-shu focus:ring-2 focus:ring-shu/20"
+                className="w-full rounded-lg border border-gray-6 bg-white px-4 py-3 text-sm text-dark-1 placeholder:text-gray-2 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
               />
-              {err && <p className="text-sm text-shu bg-shu/10 rounded-lg px-3 py-2">{err}</p>}
+              {err && <p className="text-sm text-primary bg-primary-light rounded-lg px-3 py-2">{err}</p>}
               <Button type="submit" className="w-full py-3.5" disabled={loading}>
                 {loading ? "Mengirim…" : "Kirim Reservasi →"}
               </Button>
-              <button type="button" onClick={onClose} className="w-full text-center text-sm text-sumi/50 hover:text-sumi py-1">Batal</button>
+              <button type="button" onClick={onClose} className="w-full text-center text-sm text-gray-5 hover:text-dark-1 py-1">Batal</button>
             </form>
           </>
         )}

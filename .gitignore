@@ -32,8 +32,10 @@ pnpm-debug.log*
 cookies.txt
 dev.log
 
-# env — keep .env for local demo; ignore secrets in real deploys
+# env — never commit real secrets; each machine keeps its own .env
+.env
 .env*.local
+!.env.example
 
 # editor
 .vscode/*

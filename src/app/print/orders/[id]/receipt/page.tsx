@@ -26,7 +26,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
       <ReceiptToolbar />
       <div className="max-w-[300px] mx-auto bg-white rounded-xl ring-1 ring-sumi/10 p-4 font-mono text-[12px] leading-snug text-black print:rounded-none print:ring-0 print:p-0">
         <div className="text-center">
-          <p className="font-extrabold text-sm">{order.outlet.name}</p>
+          <p className="font-bold text-sm">{order.outlet.name}</p>
           <p>{order.outlet.address}</p>
           <p>{order.outlet.phone}</p>
         </div>
@@ -39,7 +39,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
         {order.queueNumber != null && (
           <div className="border-t border-dashed border-black my-2 pt-2 text-center">
             <p className="text-[10px] tracking-widest">NOMOR ANTRIAN</p>
-            <p className="font-extrabold text-3xl leading-none">#{order.queueNumber}</p>
+            <p className="font-bold text-3xl leading-none">#{order.queueNumber}</p>
           </div>
         )}
 
@@ -63,7 +63,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
           {order.pointsUsed > 0 && <div className="flex justify-between"><span>Poin</span><span>-{rupiah(order.pointsUsed)}</span></div>}
           {order.tax > 0 && <div className="flex justify-between"><span>Pajak</span><span>{rupiah(order.tax)}</span></div>}
           {order.deliveryFee > 0 && <div className="flex justify-between"><span>Ongkir</span><span>{rupiah(order.deliveryFee)}</span></div>}
-          <div className="flex justify-between font-extrabold text-sm border-t border-dashed border-black mt-1 pt-1">
+          <div className="flex justify-between font-bold text-sm border-t border-dashed border-black mt-1 pt-1">
             <span>TOTAL</span><span>{rupiah(order.total)}</span>
           </div>
         </div>

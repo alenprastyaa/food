@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui";
 import { PageHeader, EmptyState } from "@/components/dash";
+import { IconUsers } from "@/components/icons";
 
 type Cashier = { id: string; name: string; email: string; outletId: string | null; outlet: { name: string } | null };
 type Outlet = { id: string; name: string };
@@ -25,26 +26,26 @@ export default function CashiersManager({ outlets }: { outlets: Outlet[] }) {
 
   return (
     <div>
-      <PageHeader title="Kasir" jp="スタッフ" subtitle="Kelola akun kasir tiap outlet">
+      <PageHeader title="Kasir" subtitle="Kelola akun kasir tiap outlet">
         <Button onClick={() => { setEditing(null); setShow(true); }}>+ Kasir Baru</Button>
       </PageHeader>
 
       <div className="p-5 lg:p-8">
         {cashiers.length === 0 ? (
-          <EmptyState icon="👤" title="Belum ada kasir" subtitle="Tambahkan akun kasir untuk outletmu." />
+          <EmptyState icon={<IconUsers className="h-6 w-6" />} title="Belum ada kasir" subtitle="Tambahkan akun kasir untuk outletmu." />
         ) : (
           <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-3">
             {cashiers.map((c) => (
               <div key={c.id} className="paper-card rounded-2xl p-4 flex items-center gap-3">
                 <span className="hanko h-12 w-12 text-lg shrink-0">{c.name.charAt(0)}</span>
                 <div className="min-w-0 flex-1">
-                  <p className="font-round font-bold text-sm truncate">{c.name}</p>
+                  <p className="font-round font-semibold text-sm truncate">{c.name}</p>
                   <p className="text-xs text-sumi/50 truncate">{c.email}</p>
-                  <p className="text-[11px] text-shu font-bold mt-0.5">🏮 {c.outlet?.name.replace("Nashi Katsu — ", "") ?? "—"}</p>
+                  <p className="text-[11px] text-shu font-semibold mt-0.5">🏮 {c.outlet?.name.replace("Nashi Katsu — ", "") ?? "—"}</p>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <button onClick={() => { setEditing(c); setShow(true); }} className="text-xs font-bold text-sumi/50 hover:text-shu">Edit</button>
-                  <button onClick={() => remove(c)} className="text-xs font-bold text-rose-400 hover:text-rose-600">Hapus</button>
+                  <button onClick={() => { setEditing(c); setShow(true); }} className="text-xs font-semibold text-sumi/50 hover:text-shu">Edit</button>
+                  <button onClick={() => remove(c)} className="text-xs font-semibold text-rose-400 hover:text-rose-600">Hapus</button>
                 </div>
               </div>
             ))}
@@ -83,7 +84,7 @@ function CashierForm({ cashier, outlets, onClose, onSaved }: { cashier: Cashier 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-sumi/40 backdrop-blur-sm p-4" onClick={onClose}>
       <div className="paper-card rounded-3xl p-6 w-full max-w-md animate-fade-up" onClick={(e) => e.stopPropagation()}>
-        <h2 className="font-display text-xl font-extrabold mb-4">{cashier ? "Edit Kasir" : "Kasir Baru"} <span className="font-round text-shu/60 text-sm">スタッフ</span></h2>
+        <h2 className="font-display text-xl font-bold mb-4">{cashier ? "Edit Kasir" : "Kasir Baru"}</h2>
         <div className="space-y-3">
           <F label="Nama"><input value={name} onChange={(e) => setName(e.target.value)} className="in" /></F>
           <F label="Email"><input value={email} disabled={!!cashier} onChange={(e) => setEmail(e.target.value)} className="in disabled:opacity-50" placeholder="kasir@nashi.id" /></F>

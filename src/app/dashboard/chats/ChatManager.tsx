@@ -1,11 +1,16 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import clsx from "clsx";
-import { usePoll, fileToDataUrl } from "@/lib/hooks";
-import { MessageBubble, Msg } from "@/components/chat";
+import {
+  IconSearch, IconChat, IconCamera, IconSend, IconChevronLeft,
+  IconWhatsApp, IconPlus, IconReceipt, IconChevronRight,
+} from "@/components/icons";
+import { usePoll } from "@/lib/hooks";
+import { uploadImage } from "@/lib/upload";
+import { MessageBubble, DateDivider, Msg } from "@/components/chat";
 import { rupiah, timeAgo, ORDER_STATUS } from "@/lib/format";
-import { Button } from "@/components/ui";
 import OrderComposer from "./OrderComposer";
 
 type Conv = {
@@ -32,12 +37,38 @@ type ActiveConv = {
 };
 
 const QUICK = [
-  "Halo, ada yang bisa dibantu? 🌸",
-  "Menu favorit hari ini: Katsu Curry Donburi 🍛",
+  "Halo, ada yang bisa dibantu?",
   "Baik, pesanan dicatat ya!",
-  "Sudah kami terima, mohon ditunggu 🙏",
+  "Sudah kami terima, mohon ditunggu.",
+  "Pesanan sedang disiapkan.",
   "Terima kasih sudah order di Nashi Katsu!",
 ];
+
+const shortOutlet = (name: string) => name.replace("Nashi Katsu — ", "");
+const waLink = (phone: string) => `https://wa.me/${phone.replace(/[^0-9]/g, "").replace(/^0/, "62")}`;
+
+/** Stable per-person avatar colour, so the same buyer always looks the same. */
+const AVATAR = [
+  "bg-blue-100 text-blue-700",
+  "bg-violet-100 text-violet-700",
+  "bg-emerald-100 text-emerald-700",
+  "bg-amber-100 text-amber-700",
+  "bg-rose-100 text-rose-700",
+  "bg-cyan-100 text-cyan-700",
+];
+function avatarTone(name: string) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return AVATAR[h % AVATAR.length];
+}
+
+function Avatar({ name, className }: { name: string; className?: string }) {
+  return (
+    <span className={clsx("grid shrink-0 place-items-center rounded-full font-semibold", avatarTone(name), className ?? "h-10 w-10 text-sm")}>
+      {name.charAt(0).toUpperCase()}
+    </span>
+  );
+}
 
 export default function ChatManager({ role }: { role: string }) {
   const router = useRouter();
@@ -45,15 +76,20 @@ export default function ChatManager({ role }: { role: string }) {
   const selected = searchParams.get("id");
   const [q, setQ] = useState("");
   const [text, setText] = useState("");
+  const [filter, setFilter] = useState<"all" | "waiting">("all");
   const [composerOpen, setComposerOpen] = useState(false);
+  const [sendingImg, setSendingImg] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const { data: listData } = usePoll<{ conversations: Conv[] }>(`/api/conversations?q=${encodeURIComponent(q)}`, 3500);
   const { data: activeData, reload } = usePoll<ActiveConv>(selected ? `/api/chat/${selected}` : null, 2500);
 
-  const conversations = listData?.conversations ?? [];
+  const conversations = useMemo(() => listData?.conversations ?? [], [listData]);
   const active = activeData?.conversation;
+
+  const waitingCount = conversations.filter((c) => c.status === "WAITING").length;
+  const shown = filter === "waiting" ? conversations.filter((c) => c.status === "WAITING") : conversations;
 
   // Auto-buka percakapan pertama hanya sekali saat halaman pertama kali dimuat —
   // tidak boleh berjalan ulang tiap kali `selected` kosong, atau tombol back jadi tak berefek
@@ -87,57 +123,108 @@ export default function ChatManager({ role }: { role: string }) {
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const url = await fileToDataUrl(file);
-    await reply(url, "image");
-    if (fileRef.current) fileRef.current.value = "";
+    setSendingImg(true);
+    try {
+      await reply(await uploadImage(file), "image");
+    } catch (er) {
+      alert(er instanceof Error ? er.message : "Gagal mengunggah gambar.");
+    } finally {
+      setSendingImg(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
   }
 
   const latestOrder = active?.orders?.[0];
 
   return (
-    <div className="h-[calc(100vh-3.5rem)] lg:h-screen flex">
-      {/* LIST */}
-      <div className={clsx("w-full lg:w-[340px] shrink-0 border-r border-sumi/10 bg-paper flex flex-col", selected && "hidden lg:flex")}>
-        <div className="p-4 border-b border-sumi/10">
+    <div className="h-[calc(100vh-3.5rem)] lg:h-screen flex bg-gray-3">
+      {/* ---------------- LIST ---------------- */}
+      <div className={clsx("w-full lg:w-[350px] shrink-0 border-r border-gray-4 bg-white flex flex-col", selected && "hidden lg:flex")}>
+        <div className="px-4 pt-4 pb-3 border-b border-gray-4 shrink-0">
           <div className="flex items-center justify-between mb-3">
-            <h1 className="font-display text-xl font-extrabold">Chat <span className="font-round text-shu/60 text-sm">会話</span></h1>
-            <span className="text-xs bg-shu/10 text-shu rounded-full px-2 py-1 font-bold">{conversations.length}</span>
+            <h1 className="text-xl font-semibold text-dark-1 tracking-tight">Chat</h1>
+            {waitingCount > 0 && (
+              <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-white tabular-nums">
+                {waitingCount} baru
+              </span>
+            )}
           </div>
+
           <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sumi/30 text-sm">🔍</span>
+            <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-2" />
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Cari nama / nomor…"
-              className="w-full rounded-xl border border-sumi/15 bg-washi/50 pl-9 pr-3 py-2.5 text-sm outline-none focus:border-shu focus:ring-2 focus:ring-shu/20"
+              placeholder="Cari nama atau nomor…"
+              className="w-full rounded-lg border border-gray-6 bg-white pl-9 pr-3 py-2.5 text-sm text-dark-1 placeholder:text-gray-2 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
             />
           </div>
+
+          {/* filter — makes "what still needs a reply" a first-class view */}
+          <div className="mt-3 flex gap-1 rounded-lg bg-gray-3 p-1">
+            {([["all", `Semua (${conversations.length})`], ["waiting", `Perlu Dibalas (${waitingCount})`]] as const).map(([key, label]) => (
+              <button
+                key={key}
+                onClick={() => setFilter(key)}
+                className={clsx(
+                  "flex-1 rounded-md px-2 py-1.5 text-xs font-semibold transition",
+                  filter === key ? "bg-white text-dark-1 shadow-sm" : "text-gray-5 hover:text-dark-2"
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
+
         <div className="flex-1 overflow-y-auto scroll-thin">
-          {conversations.length === 0 && <p className="text-center text-sm text-sumi/40 py-10">Belum ada percakapan.</p>}
-          {conversations.map((c) => {
+          {shown.length === 0 && (
+            <div className="px-6 py-12 text-center">
+              <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-full bg-gray-3 text-gray-2">
+                <IconChat className="h-5 w-5" />
+              </div>
+              <p className="text-sm font-medium text-dark-2">
+                {filter === "waiting" ? "Semua chat sudah dibalas" : "Belum ada percakapan"}
+              </p>
+            </div>
+          )}
+
+          {shown.map((c) => {
             const order = c.orders[0];
             const st = order ? ORDER_STATUS[order.status] : null;
+            const isActive = selected === c.id;
+            const waiting = c.status === "WAITING";
             return (
               <button
                 key={c.id}
                 onClick={() => router.push(`/dashboard/chats?id=${c.id}`)}
                 className={clsx(
-                  "w-full text-left px-4 py-3 border-b border-sumi/5 hover:bg-washi/60 transition flex gap-3",
-                  selected === c.id && "bg-shu/5 border-l-2 border-l-shu"
+                  "relative w-full text-left px-4 py-3 border-b border-gray-4 transition flex gap-3",
+                  isActive ? "bg-primary-light" : "hover:bg-gray-3"
                 )}
               >
-                <span className="hanko h-10 w-10 text-sm shrink-0">{c.buyerName.charAt(0)}</span>
+                {isActive && <span className="absolute left-0 top-0 h-full w-0.5 bg-primary" />}
+                <Avatar name={c.buyerName} />
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="font-round font-bold text-sm text-sumi truncate">{c.buyerName}</p>
-                    <span className="text-[10px] text-sumi/40 shrink-0">{timeAgo(c.updatedAt)}</span>
+                  <div className="flex items-baseline justify-between gap-2">
+                    <p className={clsx("truncate text-sm", waiting ? "font-semibold text-dark-1" : "font-medium text-dark-2")}>
+                      {c.buyerName}
+                    </p>
+                    <span className="shrink-0 text-[11px] text-gray-2">{timeAgo(c.updatedAt)}</span>
                   </div>
-                  <p className="text-xs text-sumi/50 truncate mt-0.5">{c.lastMessage}</p>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    {role === "OWNER" && <span className="text-[10px] text-sumi/40">{c.outlet.name.replace("Nashi Katsu — ", "")}</span>}
-                    {st && <span className="text-[10px] font-bold text-shu bg-shu/10 rounded px-1.5 py-0.5">{st.label}</span>}
-                    {c.status === "WAITING" && <span className="h-2 w-2 rounded-full bg-shu pulse-ring" />}
+                  <p className={clsx("mt-0.5 truncate text-xs", waiting ? "font-medium text-dark-2" : "text-gray-5")}>
+                    {c.lastMessage ?? "—"}
+                  </p>
+                  <div className="mt-1.5 flex items-center gap-1.5">
+                    {waiting && (
+                      <span className="rounded bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-white">Perlu dibalas</span>
+                    )}
+                    {st && (
+                      <span className="rounded bg-gray-3 px-1.5 py-0.5 text-[10px] font-medium text-gray-8">{st.label}</span>
+                    )}
+                    {role === "OWNER" && (
+                      <span className="truncate text-[10px] text-gray-2">{shortOutlet(c.outlet.name)}</span>
+                    )}
                   </div>
                 </div>
               </button>
@@ -146,70 +233,123 @@ export default function ChatManager({ role }: { role: string }) {
         </div>
       </div>
 
-      {/* ACTIVE */}
-      <div className={clsx("flex-1 flex-col bg-asanoha min-w-0", selected ? "flex" : "hidden lg:flex")}>
+      {/* ---------------- ACTIVE THREAD ---------------- */}
+      <div className={clsx("flex-1 flex-col min-w-0", selected ? "flex" : "hidden lg:flex")}>
         {!active ? (
-          <div className="flex-1 grid place-items-center text-center p-8">
+          <div className="flex-1 grid place-items-center p-8 text-center">
             <div>
-              <div className="hanko h-16 w-16 text-3xl mx-auto mb-3">会</div>
-              <p className="font-display text-lg font-bold text-sumi/60">Pilih percakapan</p>
-              <p className="text-sm text-sumi/40">Balas chat pembeli & buat order dari sini.</p>
+              <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-full bg-white border border-gray-6 text-gray-2">
+                <IconChat className="h-7 w-7" />
+              </div>
+              <p className="text-base font-semibold text-dark-2">Pilih percakapan</p>
+              <p className="mt-1 text-sm text-gray-5">Balas chat pembeli &amp; buat order dari sini.</p>
             </div>
           </div>
         ) : (
           <>
             {/* header */}
-            <div className="bg-paper border-b border-sumi/10 px-4 py-3 flex items-center gap-3">
-              <button onClick={() => router.push("/dashboard/chats")} className="lg:hidden text-xl text-sumi/60">‹</button>
-              <span className="hanko h-10 w-10 text-sm shrink-0">{active.buyerName.charAt(0)}</span>
-              <div className="min-w-0 flex-1">
-                <p className="font-round font-bold text-sm truncate">{active.buyerName}</p>
-                <p className="text-xs text-sumi/50">{active.buyerPhone} · {active.outlet.name.replace("Nashi Katsu — ", "")}</p>
-              </div>
-              <a
-                href={`https://wa.me/${active.buyerPhone.replace(/[^0-9]/g, "").replace(/^0/, "62")}`}
-                target="_blank"
-                className="text-sm px-3 py-2 rounded-xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 font-round font-bold btn-press hidden sm:inline-flex"
+            <div className="shrink-0 bg-white border-b border-gray-4 px-3 lg:px-4 py-3 flex items-center gap-3">
+              <button
+                onClick={() => router.push("/dashboard/chats")}
+                aria-label="Kembali ke daftar"
+                className="lg:hidden grid h-9 w-9 shrink-0 place-items-center rounded-lg text-gray-8 hover:bg-gray-3"
               >
-                WA
+                <IconChevronLeft className="h-5 w-5" />
+              </button>
+
+              <Avatar name={active.buyerName} />
+
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold text-dark-1">{active.buyerName}</p>
+                <p className="truncate text-xs text-gray-5">
+                  {active.buyerPhone} · {shortOutlet(active.outlet.name)}
+                </p>
+              </div>
+
+              <a
+                href={waLink(active.buyerPhone)}
+                target="_blank"
+                rel="noreferrer"
+                title="Hubungi via WhatsApp"
+                className="hidden sm:inline-flex h-9 items-center gap-1.5 rounded-lg border border-gray-4 px-3 text-sm font-semibold text-gray-8 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 transition"
+              >
+                <IconWhatsApp className="h-4 w-4" />
+                WhatsApp
               </a>
-              <Button onClick={() => setComposerOpen(true)} className="py-2">+ Order</Button>
+
+              <button
+                onClick={() => setComposerOpen(true)}
+                className="btn-press inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3 text-sm font-semibold text-white shadow-sm hover:bg-primary-hover transition"
+              >
+                <IconPlus className="h-4 w-4" />
+                <span className="hidden sm:inline">Buat</span> Order
+              </button>
             </div>
 
-            {/* order banner */}
+            {/* active order — now a link, not a dead strip */}
             {latestOrder && (
-              <div className="bg-sumi text-washi px-4 py-2 flex items-center justify-between text-sm">
-                <span className="font-round">🧾 {latestOrder.invoiceNumber} · {rupiah(latestOrder.total)}</span>
-                <span className="font-display text-kin-light text-xs">{ORDER_STATUS[latestOrder.status]?.label}</span>
-              </div>
+              <Link
+                href={`/dashboard/orders?id=${latestOrder.id}`}
+                className="group shrink-0 flex items-center gap-3 border-b border-gray-4 bg-white px-4 py-2.5 hover:bg-gray-3 transition"
+              >
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary-light text-primary">
+                  <IconReceipt className="h-4 w-4" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-dark-1">
+                    {latestOrder.invoiceNumber} · {rupiah(latestOrder.total)}
+                  </p>
+                  <p className="text-xs text-gray-5">{ORDER_STATUS[latestOrder.status]?.label ?? latestOrder.status}</p>
+                </div>
+                <IconChevronRight className="h-4 w-4 shrink-0 text-gray-2 group-hover:text-primary transition" />
+              </Link>
             )}
 
             {/* messages */}
             <div className="flex-1 overflow-y-auto scroll-thin px-4 py-4">
-              {active.messages.map((m) => (
-                <MessageBubble key={m.id} m={m} mine={m.sender === "cashier"} />
-              ))}
+              {active.messages.map((m, i) => {
+                const prev = active.messages[i - 1];
+                const newDay =
+                  !prev || new Date(prev.createdAt).toDateString() !== new Date(m.createdAt).toDateString();
+                return (
+                  <div key={m.id}>
+                    {newDay && <DateDivider date={m.createdAt} />}
+                    <MessageBubble m={m} mine={m.sender === "cashier"} />
+                  </div>
+                );
+              })}
               <div ref={endRef} />
             </div>
 
-            {/* quick replies */}
-            <div className="px-3 pt-2 flex gap-2 overflow-x-auto scroll-thin">
-              {QUICK.map((qr) => (
-                <button
-                  key={qr}
-                  onClick={() => reply(qr)}
-                  className="shrink-0 text-xs rounded-full bg-paper ring-1 ring-sumi/10 px-3 py-1.5 text-sumi/70 hover:bg-shu/5 hover:text-shu transition"
-                >
-                  {qr.length > 30 ? qr.slice(0, 30) + "…" : qr}
-                </button>
-              ))}
-            </div>
-
             {/* composer */}
-            <div className="p-3 bg-paper/60 backdrop-blur border-t border-sumi/10">
+            <div className="shrink-0 border-t border-gray-4 bg-white px-3 py-3">
+              {/* quick replies only while the field is empty, so they never fight the draft */}
+              {!text.trim() && (
+                <div className="mb-2 flex gap-2 overflow-x-auto no-scrollbar">
+                  {QUICK.map((qr) => (
+                    <button
+                      key={qr}
+                      onClick={() => reply(qr)}
+                      title={qr}
+                      className="shrink-0 rounded-full border border-gray-4 px-3 py-1.5 text-xs font-medium text-gray-8 hover:border-primary hover:bg-primary-light hover:text-primary transition"
+                    >
+                      {qr.length > 32 ? qr.slice(0, 32) + "…" : qr}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               <div className="flex items-end gap-2">
-                <button onClick={() => fileRef.current?.click()} className="shrink-0 h-11 w-11 grid place-items-center rounded-xl bg-paper ring-1 ring-sumi/10 text-lg btn-press">📷</button>
+                <button
+                  onClick={() => fileRef.current?.click()}
+                  aria-label="Kirim foto"
+                  disabled={sendingImg}
+                  className="btn-press grid h-11 w-11 shrink-0 place-items-center rounded-lg border border-gray-6 bg-white text-gray-8 hover:bg-gray-3 transition disabled:opacity-50"
+                >
+                  <IconCamera className="h-5 w-5" />
+                </button>
                 <input ref={fileRef} type="file" accept="image/*" hidden onChange={onFile} />
+
                 <textarea
                   value={text}
                   onChange={(e) => setText(e.target.value)}
@@ -220,11 +360,23 @@ export default function ChatManager({ role }: { role: string }) {
                     }
                   }}
                   rows={1}
-                  placeholder="Balas pesan…"
-                  className="flex-1 resize-none rounded-xl border border-sumi/15 bg-paper px-4 py-3 text-sm outline-none focus:border-shu focus:ring-2 focus:ring-shu/20 max-h-28"
+                  placeholder="Tulis balasan…"
+                  className="max-h-28 flex-1 resize-none rounded-lg border border-gray-6 bg-white px-4 py-3 text-sm text-dark-1 placeholder:text-gray-2 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
                 />
-                <button onClick={() => reply(text)} disabled={!text.trim()} className="shrink-0 h-11 w-11 grid place-items-center rounded-xl bg-shu text-white text-lg shadow-[0_3px_0_var(--color-shu-dark)] btn-press disabled:opacity-40">➤</button>
+
+                <button
+                  onClick={() => reply(text)}
+                  disabled={!text.trim()}
+                  aria-label="Kirim"
+                  className="btn-press grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-primary text-white shadow-sm hover:bg-primary-hover transition disabled:bg-gray-4 disabled:text-gray-2 disabled:shadow-none"
+                >
+                  <IconSend className="h-5 w-5" />
+                </button>
               </div>
+
+              <p className="mt-1.5 hidden pl-1 text-[11px] text-gray-2 sm:block">
+                Enter untuk kirim · Shift + Enter untuk baris baru
+              </p>
             </div>
           </>
         )}

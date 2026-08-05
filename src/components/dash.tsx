@@ -1,23 +1,20 @@
+import clsx from "clsx";
+
 export function PageHeader({
   title,
-  jp,
   subtitle,
   children,
 }: {
   title: string;
-  jp?: string;
   subtitle?: string;
   children?: React.ReactNode;
 }) {
   return (
-    <header className="sticky top-0 lg:top-0 z-20 bg-washi/85 backdrop-blur border-b border-sumi/10 px-5 lg:px-8 py-4">
+    <header className="sticky top-0 z-20 bg-white border-b border-gray-4 px-5 lg:px-8 py-4">
       <div className="flex items-center justify-between gap-4">
         <div className="min-w-0">
-          <div className="flex items-center gap-2.5">
-            <h1 className="font-display text-2xl font-extrabold text-sumi truncate">{title}</h1>
-            {jp && <span className="font-round text-shu/60 text-sm shrink-0">{jp}</span>}
-          </div>
-          {subtitle && <p className="text-sm text-sumi/50 mt-0.5 truncate">{subtitle}</p>}
+          <h1 className="text-xl lg:text-2xl font-semibold text-dark-1 tracking-tight truncate">{title}</h1>
+          {subtitle && <p className="text-sm text-gray-5 mt-0.5 truncate">{subtitle}</p>}
         </div>
         {children && <div className="shrink-0">{children}</div>}
       </div>
@@ -25,12 +22,52 @@ export function PageHeader({
   );
 }
 
-export function EmptyState({ icon, title, subtitle }: { icon: string; title: string; subtitle?: string }) {
+/** Standard page body padding, so every CMS screen lines up. */
+export function PageBody({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <div className={clsx("p-5 lg:p-8", className)}>{children}</div>;
+}
+
+/** Neutral surface used for every panel in the CMS. */
+export function Panel({
+  title,
+  action,
+  children,
+  className,
+  bodyClassName,
+}: {
+  title?: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+  className?: string;
+  bodyClassName?: string;
+}) {
   return (
-    <div className="grid place-items-center py-20 text-center">
-      <div className="hanko h-16 w-16 text-3xl mb-4 opacity-80">{icon}</div>
-      <p className="font-display text-lg font-bold text-sumi/70">{title}</p>
-      {subtitle && <p className="text-sm text-sumi/40 mt-1 max-w-xs">{subtitle}</p>}
+    <section className={clsx("rounded-xl border border-gray-6 bg-white", className)}>
+      {(title || action) && (
+        <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-gray-4">
+          {title && <h3 className="text-base font-semibold text-dark-1">{title}</h3>}
+          {action}
+        </div>
+      )}
+      <div className={clsx("p-5", bodyClassName)}>{children}</div>
+    </section>
+  );
+}
+
+export function EmptyState({
+  icon,
+  title,
+  subtitle,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  subtitle?: string;
+}) {
+  return (
+    <div className="grid place-items-center py-16 text-center">
+      <div className="grid h-14 w-14 place-items-center rounded-full bg-gray-3 text-gray-2 mb-4">{icon}</div>
+      <p className="text-base font-semibold text-dark-2">{title}</p>
+      {subtitle && <p className="text-sm text-gray-5 mt-1 max-w-xs">{subtitle}</p>}
     </div>
   );
 }

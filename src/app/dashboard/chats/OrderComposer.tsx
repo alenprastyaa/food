@@ -104,8 +104,8 @@ export default function OrderComposer({
         {/* header */}
         <div className="bg-sumi text-washi px-5 py-4 flex items-center justify-between">
           <div>
-            <p className="font-round text-kin-light text-xs tracking-widest">注文作成</p>
-            <h2 className="font-display text-xl font-extrabold">Buat Order · {buyerName}</h2>
+            <p className="font-round text-kin-light text-xs tracking-widest">BUAT PESANAN</p>
+            <h2 className="font-display text-xl font-bold">Buat Order · {buyerName}</h2>
           </div>
           <button onClick={onClose} className="text-2xl text-washi/60 hover:text-washi">✕</button>
         </div>
@@ -124,7 +124,7 @@ export default function OrderComposer({
                 <button
                   key={c}
                   onClick={() => setCat(c)}
-                  className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-round font-bold transition ${cat === c ? "bg-shu text-white" : "bg-paper text-sumi/60 ring-1 ring-sumi/10"}`}
+                  className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-round font-semibold transition ${cat === c ? "bg-shu text-white" : "bg-paper text-sumi/60 ring-1 ring-sumi/10"}`}
                 >
                   {c}
                 </button>
@@ -142,8 +142,8 @@ export default function OrderComposer({
               <div key={m.id} className="paper-card rounded-xl p-2.5 flex items-center gap-3">
                 <MenuImage image={m.image} category={m.category} className="h-12 w-12 rounded-lg shrink-0" />
                 <div className="min-w-0 flex-1">
-                  <p className="font-round font-bold text-sm truncate">{m.name}</p>
-                  <p className="text-xs text-shu font-bold">{rupiah(m.price)}</p>
+                  <p className="font-round font-semibold text-sm truncate">{m.name}</p>
+                  <p className="text-xs text-shu font-semibold">{rupiah(m.price)}</p>
                   {!hasVariants && plainQty > 0 && (
                     <input
                       value={lines[lineKey(m.id, [])]?.notes ?? ""}
@@ -155,18 +155,18 @@ export default function OrderComposer({
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
                   {hasVariants ? (
-                    <button onClick={() => setVariantMenu(m)} className="rounded-lg bg-shu text-white text-xs font-bold px-3 py-2 btn-press">
+                    <button onClick={() => setVariantMenu(m)} className="rounded-lg bg-shu text-white text-xs font-semibold px-3 py-2 btn-press">
                       {totalQty > 0 ? `+ (${totalQty})` : "+ Varian"}
                     </button>
                   ) : (
                     <>
                       {plainQty > 0 && (
                         <>
-                          <button onClick={() => setQty(m.id, -1)} className="h-7 w-7 rounded-lg bg-sumi/10 text-sumi font-bold btn-press">−</button>
-                          <span className="w-5 text-center font-display font-bold text-sm">{plainQty}</span>
+                          <button onClick={() => setQty(m.id, -1)} className="h-7 w-7 rounded-lg bg-sumi/10 text-sumi font-semibold btn-press">−</button>
+                          <span className="w-5 text-center font-display font-semibold text-sm">{plainQty}</span>
                         </>
                       )}
-                      <button onClick={() => setQty(m.id, 1)} className="h-7 w-7 rounded-lg bg-shu text-white font-bold btn-press">+</button>
+                      <button onClick={() => setQty(m.id, 1)} className="h-7 w-7 rounded-lg bg-shu text-white font-semibold btn-press">+</button>
                     </>
                   )}
                 </div>
@@ -190,8 +190,8 @@ export default function OrderComposer({
                     </span>
                     <span className="flex items-center gap-1.5 shrink-0">
                       <span className="font-semibold">{rupiah(unitPrice(l) * l.qty)}</span>
-                      <button onClick={() => setLineQty(l.key, l.qty - 1)} className="h-5 w-5 rounded bg-sumi/10 text-sumi font-bold text-[10px]">−</button>
-                      <button onClick={() => setLineQty(l.key, l.qty + 1)} className="h-5 w-5 rounded bg-shu/10 text-shu font-bold text-[10px]">+</button>
+                      <button onClick={() => setLineQty(l.key, l.qty - 1)} className="h-5 w-5 rounded bg-sumi/10 text-sumi font-semibold text-[10px]">−</button>
+                      <button onClick={() => setLineQty(l.key, l.qty + 1)} className="h-5 w-5 rounded bg-shu/10 text-shu font-semibold text-[10px]">+</button>
                     </span>
                   </div>
                 );
@@ -227,7 +227,7 @@ export default function OrderComposer({
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-sumi/50">Total ({items.reduce((s, l) => s + l.qty, 0)} item)</p>
-              <p className="font-display text-2xl font-extrabold text-shu">{rupiah(total)}</p>
+              <p className="font-display text-2xl font-bold text-shu">{rupiah(total)}</p>
             </div>
             <Button onClick={submit} disabled={saving || items.length === 0} className="py-3 px-6">
               {saving ? "Membuat…" : "Buat Order →"}

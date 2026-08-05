@@ -62,25 +62,25 @@ export default function AccountView() {
       <div className="noren h-2 w-full" />
       <div className="mx-auto max-w-2xl px-4 py-6">
         <div className="flex items-center justify-between mb-5">
-          <Logo size={38} />
-          <button onClick={logout} className="text-sm font-round font-bold text-sumi/60 hover:text-shu">Keluar</button>
+          <Logo size={46} />
+          <button onClick={logout} className="text-sm font-round font-semibold text-sumi/60 hover:text-shu">Keluar</button>
         </div>
 
         {buyer && (
           <div className="paper-card rounded-3xl p-5 flex items-center gap-4 mb-5">
             <span className="hanko h-14 w-14 text-xl shrink-0">{buyer.name.charAt(0)}</span>
             <div className="min-w-0 flex-1">
-              <p className="font-display text-lg font-extrabold text-sumi truncate">{buyer.name}</p>
+              <p className="font-display text-lg font-bold text-sumi truncate">{buyer.name}</p>
               <p className="text-sm text-sumi/50">{buyer.phone}{buyer.email ? ` · ${buyer.email}` : ""}</p>
             </div>
             <div className="text-right shrink-0">
-              <p className="font-display text-xl font-extrabold text-shu">🪙 {buyer.points}</p>
+              <p className="font-display text-xl font-bold text-shu">🪙 {buyer.points}</p>
               <p className="text-[10px] text-sumi/40">Poin</p>
             </div>
           </div>
         )}
 
-        <h2 className="font-display text-xl font-extrabold text-sumi mb-3">Riwayat Order <span className="font-round text-shu/60 text-sm">注文履歴</span></h2>
+        <h2 className="font-display text-xl font-bold text-sumi mb-3">Riwayat Order</h2>
 
         {loading ? (
           <p className="text-sumi/40 text-sm">Memuat…</p>
@@ -95,13 +95,13 @@ export default function AccountView() {
                   <MenuImage image={null} category="Katsu" className="h-12 w-12 rounded-xl shrink-0" />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
-                      <p className="font-round font-bold text-sm text-sumi truncate">{o.invoiceNumber}</p>
+                      <p className="font-round font-semibold text-sm text-sumi truncate">{o.invoiceNumber}</p>
                       <span className="text-[10px] text-sumi/40 shrink-0">{timeAgo(o.createdAt)}</span>
                     </div>
                     <p className="text-xs text-sumi/50 truncate">{o.outlet.name.replace("Nashi Katsu — ", "")} · {o.items.length} item</p>
                     <div className="mt-1.5"><StatusBadge label={st?.label} tone={st?.tone} /></div>
                   </div>
-                  <span className="font-display font-extrabold text-shu shrink-0">{rupiah(o.total)}</span>
+                  <span className="font-display font-bold text-shu shrink-0">{rupiah(o.total)}</span>
                 </Link>
               );
             })}
@@ -110,7 +110,7 @@ export default function AccountView() {
 
         {!loading && reservations.length > 0 && (
           <>
-            <h2 className="font-display text-xl font-extrabold text-sumi mb-3 mt-8">Reservasi Saya <span className="font-round text-shu/60 text-sm">予約</span></h2>
+            <h2 className="font-display text-xl font-bold text-sumi mb-3 mt-8">Reservasi Saya</h2>
             <div className="space-y-3">
               {reservations.map((r) => {
                 const st = RESERVATION_STATUS[r.status];
@@ -118,7 +118,7 @@ export default function AccountView() {
                   <div key={r.id} className="paper-card rounded-2xl p-4 flex items-center gap-3">
                     <span className="hanko h-12 w-12 text-lg shrink-0">📅</span>
                     <div className="min-w-0 flex-1">
-                      <p className="font-round font-bold text-sm text-sumi truncate">{r.outlet.name.replace("Nashi Katsu — ", "")}</p>
+                      <p className="font-round font-semibold text-sm text-sumi truncate">{r.outlet.name.replace("Nashi Katsu — ", "")}</p>
                       <p className="text-xs text-sumi/50">
                         {new Date(r.reservedFor).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" })} · {r.partySize} orang
                       </p>

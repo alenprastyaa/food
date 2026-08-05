@@ -55,9 +55,9 @@ export default function VariantPicker({
       <div className="w-full max-w-sm bg-washi rounded-t-[1.75rem] sm:rounded-3xl paper-card max-h-[85vh] flex flex-col animate-fade-up" onClick={(e) => e.stopPropagation()}>
         <div className="p-5 border-b border-sumi/10">
           <div className="flex items-start justify-between gap-3">
-            <h3 className="font-display text-lg font-extrabold leading-snug">{menuName}</h3>
+            <h3 className="font-display text-lg font-bold leading-snug">{menuName}</h3>
             <div className="text-right shrink-0">
-              <p className="font-display text-base font-extrabold text-shu">{rupiah(basePrice)}</p>
+              <p className="font-display text-base font-bold text-shu">{rupiah(basePrice)}</p>
               <p className="text-[10px] text-sumi/40">Harga dasar</p>
             </div>
           </div>
@@ -69,17 +69,17 @@ export default function VariantPicker({
             return (
               <div key={g.id}>
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-round font-bold text-sumi">{g.name}</p>
+                  <p className="text-sm font-round font-semibold text-sumi">{g.name}</p>
                   {g.required ? (
                     count > 0 ? (
-                      <span className="text-[10px] font-round font-bold bg-matcha text-white rounded-full px-2.5 py-1 shrink-0">Selesai</span>
+                      <span className="text-[10px] font-round font-semibold bg-matcha text-white rounded-full px-2.5 py-1 shrink-0">Selesai</span>
                     ) : (
-                      <span className="text-[10px] font-round font-bold bg-matcha/15 text-matcha rounded-full px-2.5 py-1 shrink-0">
+                      <span className="text-[10px] font-round font-semibold bg-matcha/15 text-matcha rounded-full px-2.5 py-1 shrink-0">
                         {g.multiple ? "Pilih min. 1" : "Pilih 1"}
                       </span>
                     )
                   ) : (
-                    <span className="text-[10px] font-round font-bold bg-sumi/8 text-sumi/40 rounded-full px-2.5 py-1 shrink-0">Opsional</span>
+                    <span className="text-[10px] font-round font-semibold bg-sumi/8 text-sumi/40 rounded-full px-2.5 py-1 shrink-0">Opsional</span>
                   )}
                 </div>
                 {g.multiple && <p className="text-[11px] text-sumi/40 mt-0.5">Bisa pilih lebih dari satu</p>}

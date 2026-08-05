@@ -52,13 +52,13 @@ export default function OrderDrawer({ order, onClose, onChanged }: { order: Full
       <div className="w-full max-w-md bg-washi h-full flex flex-col animate-fade-up shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="bg-sumi text-washi px-5 py-4 flex items-center justify-between">
           <div>
-            <p className="font-round text-kin-light text-[11px] tracking-widest">注文詳細</p>
-            <h2 className="font-display text-lg font-extrabold">{order.invoiceNumber}</h2>
+            <p className="font-round text-kin-light text-[11px] tracking-widest">DETAIL PESANAN</p>
+            <h2 className="font-display text-lg font-bold">{order.invoiceNumber}</h2>
           </div>
           {order.queueNumber != null && (
             <div className="text-right">
               <p className="font-round text-kin-light text-[10px] tracking-widest">ANTRIAN</p>
-              <p className="font-display text-2xl font-extrabold text-kin">#{order.queueNumber}</p>
+              <p className="font-display text-2xl font-bold text-kin">#{order.queueNumber}</p>
             </div>
           )}
           <button onClick={onClose} className="text-2xl text-washi/60 hover:text-washi">✕</button>
@@ -66,12 +66,12 @@ export default function OrderDrawer({ order, onClose, onChanged }: { order: Full
 
         <div className="flex-1 overflow-y-auto scroll-thin p-5 space-y-4">
           <div className="flex items-center justify-between">
-            <StatusBadge label={st?.label} jp={st?.jp} tone={st?.tone} />
+            <StatusBadge label={st?.label} tone={st?.tone} />
             <span className="text-xs text-sumi/40">{clock(order.createdAt)}</span>
           </div>
 
           {order.scheduledFor && (
-            <div className="rounded-xl bg-amber-50 ring-1 ring-amber-200 text-amber-700 text-xs font-round font-bold px-3 py-2">
+            <div className="rounded-xl bg-amber-50 ring-1 ring-amber-200 text-amber-700 text-xs font-round font-semibold px-3 py-2">
               🕒 Dijadwalkan: {new Date(order.scheduledFor).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" })}
             </div>
           )}
@@ -80,16 +80,16 @@ export default function OrderDrawer({ order, onClose, onChanged }: { order: Full
           <div className="paper-card rounded-xl p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-round font-bold text-sm">{order.buyerName}</p>
+                <p className="font-round font-semibold text-sm">{order.buyerName}</p>
                 <p className="text-xs text-sumi/50">{order.buyerPhone}</p>
               </div>
-              <span className="text-xs font-bold px-2 py-1 rounded-lg bg-sumi/5">{order.orderType === "DELIVERY" ? "🛵 Delivery" : "🥡 Take Away"}</span>
+              <span className="text-xs font-semibold px-2 py-1 rounded-lg bg-sumi/5">{order.orderType === "DELIVERY" ? "🛵 Delivery" : "🥡 Take Away"}</span>
             </div>
             {order.deliveryAddress && (
               <div className="mt-3 pt-3 border-t border-sumi/10">
                 <p className="text-xs text-sumi/60">📍 {order.deliveryAddress}</p>
                 {mapUrl && (
-                  <a href={mapUrl} target="_blank" className="text-xs font-bold text-shu hover:underline mt-1 inline-block">Buka di Google Maps →</a>
+                  <a href={mapUrl} target="_blank" className="text-xs font-semibold text-shu hover:underline mt-1 inline-block">Buka di Google Maps →</a>
                 )}
               </div>
             )}
@@ -100,7 +100,7 @@ export default function OrderDrawer({ order, onClose, onChanged }: { order: Full
             {order.items.map((it) => (
               <div key={it.id} className="flex justify-between text-sm">
                 <span className="text-sumi/70">
-                  {it.forName ? <span className="font-bold text-shu">{it.forName}: </span> : null}
+                  {it.forName ? <span className="font-semibold text-shu">{it.forName}: </span> : null}
                   {it.qty}× {it.menuName}
                   {it.options.length > 0 && <span className="text-sumi/40"> · {it.options.map((o) => o.optionName).join(", ")}</span>}
                   {it.notes ? <span className="text-sumi/40"> · {it.notes}</span> : null}
@@ -113,7 +113,7 @@ export default function OrderDrawer({ order, onClose, onChanged }: { order: Full
               {order.discount > 0 && <div className="flex justify-between text-emerald-600"><span>Diskon</span><span>− {rupiah(order.discount)}</span></div>}
               {order.tax > 0 && <div className="flex justify-between text-sumi/50"><span>Pajak</span><span>{rupiah(order.tax)}</span></div>}
               {order.deliveryFee > 0 && <div className="flex justify-between text-sumi/50"><span>Ongkir</span><span>{rupiah(order.deliveryFee)}</span></div>}
-              <div className="flex justify-between font-display font-extrabold text-shu text-lg pt-1"><span>Total</span><span>{rupiah(order.total)}</span></div>
+              <div className="flex justify-between font-display font-bold text-shu text-lg pt-1"><span>Total</span><span>{rupiah(order.total)}</span></div>
             </div>
           </div>
 
@@ -121,15 +121,15 @@ export default function OrderDrawer({ order, onClose, onChanged }: { order: Full
           {order.payment && (
             <div className="paper-card rounded-xl p-4">
               <div className="flex items-center justify-between mb-2">
-                <p className="font-round font-bold text-sm">Pembayaran · {order.payment.method}</p>
+                <p className="font-round font-semibold text-sm">Pembayaran · {order.payment.method}</p>
                 <StatusBadge label={PAYMENT_STATUS[order.payment.status]?.label} tone={PAYMENT_STATUS[order.payment.status]?.tone} />
               </div>
               {order.payment.method === "COD" ? (
                 order.payment.status === "PAID" ? (
-                  <p className="text-xs text-emerald-600 font-bold">✓ Tunai sudah diterima.</p>
+                  <p className="text-xs text-emerald-600 font-semibold">✓ Tunai sudah diterima.</p>
                 ) : (
                   <div className="space-y-2">
-                    <p className="text-xs text-amber-600 font-bold">💵 Bayar di tempat — belum diterima.</p>
+                    <p className="text-xs text-amber-600 font-semibold">💵 Bayar di tempat — belum diterima.</p>
                     <Button variant="matcha" disabled={busy} onClick={() => act(`/api/orders/${order.id}/mark-paid`, {}, true)} className="w-full py-2 text-sm">
                       Tandai Sudah Dibayar
                     </Button>

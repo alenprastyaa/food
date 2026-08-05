@@ -16,9 +16,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
 
   return (
-    <div className="min-h-screen bg-washi lg:flex">
+    <div className="min-h-screen bg-gray-3 lg:flex">
       <Sidebar user={{ name: user.name, role: user.role, outletName }} />
-      <main className="flex-1 min-w-0 bg-grain">{children}</main>
+      <main className="flex-1 min-w-0">{children}</main>
     </div>
   );
 }

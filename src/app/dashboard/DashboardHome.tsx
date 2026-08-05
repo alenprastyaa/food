@@ -3,7 +3,12 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePoll } from "@/lib/hooks";
 import { rupiah, rupiahShort } from "@/lib/format";
-import { PageHeader } from "@/components/dash";
+import { PageHeader, PageBody, Panel } from "@/components/dash";
+import { RevenueAreaChart, TopMenuBarChart } from "@/components/charts";
+import {
+  IconChat, IconReceipt, IconWallet, IconCheckCircle, IconClock,
+  IconFlame, IconPackage, IconTrendingUp, IconStore, IconTrophy,
+} from "@/components/icons";
 
 type Cashier = {
   activeChats: number; newOrders: number; waitingPayment: number; waitingVerif: number;
@@ -15,6 +20,21 @@ type Owner = {
   bestMenus: { name: string; qty: number; revenue: number }[];
   monthly: { date: string; total: number }[];
   outletCount: number;
+};
+
+/**
+ * Solid, saturated card per metric. White text throughout, so shades are
+ * picked for contrast against white rather than for pastel prettiness.
+ */
+const TONE: Record<string, string> = {
+  blue: "bg-blue-600 hover:bg-blue-700",
+  amber: "bg-amber-600 hover:bg-amber-700",
+  orange: "bg-orange-600 hover:bg-orange-700",
+  violet: "bg-violet-600 hover:bg-violet-700",
+  cyan: "bg-cyan-600 hover:bg-cyan-700",
+  rose: "bg-rose-600 hover:bg-rose-700",
+  emerald: "bg-emerald-600 hover:bg-emerald-700",
+  green: "bg-green-600 hover:bg-green-700",
 };
 
 export default function DashboardHome({
@@ -29,56 +49,55 @@ export default function DashboardHome({
   const { data } = usePoll<{ cashier: Cashier; owner?: Owner }>("/api/dashboard", 4000);
   const c = data?.cashier ?? initialCashier;
   const o = data?.owner ?? initialOwner ?? undefined;
-  const [greet, setGreet] = useState("Konnichiwa");
+
+  const [greet, setGreet] = useState("Halo");
   useEffect(() => {
     const hour = new Date().getHours();
-    setGreet(hour < 11 ? "Ohayō" : hour < 18 ? "Konnichiwa" : "Konbanwa");
+    setGreet(hour < 11 ? "Selamat pagi" : hour < 15 ? "Selamat siang" : hour < 18 ? "Selamat sore" : "Selamat malam");
   }, []);
 
-  const tiles: { label: string; jp: string; value: number; href: string; tone: string; live?: boolean }[] = [
-    { label: "Chat Aktif", jp: "会話", value: c.activeChats, href: "/dashboard/chats", tone: "sky" },
-    { label: "Order Baru", jp: "新規", value: c.newOrders, href: "/dashboard/orders", tone: "amber", live: c.newOrders > 0 },
-    { label: "Menunggu Bayar", jp: "支払", value: c.waitingPayment, href: "/dashboard/orders", tone: "amber" },
-    { label: "Verifikasi Bayar", jp: "確認", value: c.waitingVerif, href: "/dashboard/orders", tone: "violet", live: c.waitingVerif > 0 },
-    { label: "Antrian", jp: "待機", value: c.queued, href: "/dashboard/queue", tone: "sky" },
-    { label: "Dimasak", jp: "調理", value: c.cooking, href: "/dashboard/queue", tone: "orange" },
-    { label: "Siap", jp: "完了", value: c.ready, href: "/dashboard/queue", tone: "emerald" },
-    { label: "Order Hari Ini", jp: "本日", value: c.todayOrders, href: "/dashboard/orders", tone: "green" },
-  ];
+  const peakRevenue = o ? Math.max(0, ...o.monthly.map((d) => d.total)) : 0;
 
-  const toneBar: Record<string, string> = {
-    sky: "before:bg-sky-400", amber: "before:bg-amber-400", violet: "before:bg-violet-400",
-    orange: "before:bg-orange-400", emerald: "before:bg-emerald-400", green: "before:bg-green-500",
-  };
+  const tiles = [
+    { label: "Chat Aktif", value: c.activeChats, href: "/dashboard/chats", tone: "blue", Icon: IconChat },
+    { label: "Order Baru", value: c.newOrders, href: "/dashboard/orders", tone: "amber", Icon: IconReceipt, live: c.newOrders > 0 },
+    { label: "Menunggu Bayar", value: c.waitingPayment, href: "/dashboard/orders", tone: "orange", Icon: IconWallet },
+    { label: "Verifikasi Bayar", value: c.waitingVerif, href: "/dashboard/orders", tone: "violet", Icon: IconCheckCircle, live: c.waitingVerif > 0 },
+    { label: "Antrian", value: c.queued, href: "/dashboard/queue", tone: "cyan", Icon: IconClock },
+    { label: "Dimasak", value: c.cooking, href: "/dashboard/queue", tone: "rose", Icon: IconFlame },
+    { label: "Siap Diambil", value: c.ready, href: "/dashboard/queue", tone: "emerald", Icon: IconPackage },
+    { label: "Order Hari Ini", value: c.todayOrders, href: "/dashboard/orders", tone: "green", Icon: IconTrendingUp },
+  ];
 
   return (
     <div>
       <PageHeader
-        title={`${greet}, ${user.name.split(" ")[0]} 🌸`}
-        jp="ダッシュボード"
-        subtitle={user.role === "OWNER" ? "Ringkasan seluruh outlet Nashi Katsu" : "Ringkasan outletmu hari ini"}
+        title={`${greet}, ${user.name.split(" ")[0]}`}
+        subtitle={user.role === "OWNER" ? "Ringkasan seluruh outlet" : "Ringkasan outletmu hari ini"}
       >
         <div className="text-right">
-          <p className="text-xs text-sumi/50">Pendapatan hari ini</p>
-          <p className="font-display text-2xl font-extrabold text-shu">{rupiah(c.revenueToday)}</p>
+          <p className="text-xs text-gray-5">Pendapatan hari ini</p>
+          <p className="text-xl lg:text-2xl font-semibold text-dark-1 tracking-tight">{rupiah(c.revenueToday)}</p>
         </div>
       </PageHeader>
 
-      <div className="p-5 lg:p-8 space-y-8">
-        {/* widget grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <PageBody className="space-y-6">
+        {/* operational counters */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {tiles.map((t) => (
             <Link
               key={t.label}
               href={t.href}
-              className={`paper-card rounded-2xl p-4 relative overflow-hidden hover:-translate-y-0.5 transition before:absolute before:left-0 before:top-0 before:h-full before:w-1 ${toneBar[t.tone]}`}
+              className={`group rounded-xl p-4 text-white shadow-sm transition ${TONE[t.tone]}`}
             >
               <div className="flex items-start justify-between">
-                <p className="text-xs font-semibold text-sumi/50">{t.label}</p>
-                {t.live && <span className="h-2 w-2 rounded-full bg-shu pulse-ring" />}
+                <span className="grid h-9 w-9 place-items-center rounded-lg bg-white/20">
+                  <t.Icon className="h-[18px] w-[18px]" />
+                </span>
+                {t.live && <span className="h-2.5 w-2.5 rounded-full bg-white animate-pulse" />}
               </div>
-              <p className="font-display text-3xl font-extrabold text-sumi mt-1">{t.value}</p>
-              <p className="font-display text-[11px] text-sumi/30 absolute right-3 bottom-2">{t.jp}</p>
+              <p className="mt-3 text-3xl font-semibold tracking-tight tabular-nums">{t.value}</p>
+              <p className="text-sm font-medium text-white/90 mt-0.5">{t.label}</p>
             </Link>
           ))}
         </div>
@@ -86,117 +105,102 @@ export default function DashboardHome({
         {/* Owner analytics */}
         {o && (
           <>
-            <div className="grid md:grid-cols-4 gap-3">
-              <BigStat label="Revenue Semua Outlet" jp="総売上" value={rupiah(o.revenueAll)} accent />
-              <BigStat label="Total Order" jp="注文" value={o.totalOrders.toString()} />
-              <BigStat label="Total Chat" jp="会話" value={o.totalChats.toString()} />
-              <BigStat label="Outlet Aktif" jp="店舗" value={o.outletCount.toString()} />
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <SummaryCard label="Revenue Semua Outlet" value={rupiah(o.revenueAll)} Icon={IconWallet} accent />
+              <SummaryCard label="Total Order" value={o.totalOrders.toLocaleString("id-ID")} Icon={IconReceipt} />
+              <SummaryCard label="Total Chat" value={o.totalChats.toLocaleString("id-ID")} Icon={IconChat} />
+              <SummaryCard label="Outlet Aktif" value={o.outletCount.toString()} Icon={IconStore} />
             </div>
 
-            <div className="grid lg:grid-cols-3 gap-5">
-              {/* monthly revenue */}
-              <div className="lg:col-span-2 paper-card rounded-2xl p-5">
-                <div className="flex items-baseline justify-between mb-4">
-                  <h3 className="font-display text-lg font-extrabold">Pendapatan 30 Hari</h3>
-                  <span className="font-round text-xs text-sumi/40">月間売上</span>
-                </div>
-                <MonthlyBars data={o.monthly} />
-              </div>
+            <div className="grid lg:grid-cols-3 gap-6">
+              <Panel
+                title="Pendapatan 30 Hari"
+                className="lg:col-span-2"
+                action={
+                  <span className="text-sm text-gray-5">
+                    Tertinggi <span className="font-semibold text-dark-1">{rupiahShort(peakRevenue)}</span>
+                  </span>
+                }
+              >
+                <RevenueAreaChart data={o.monthly} />
+              </Panel>
 
-              {/* best menus */}
-              <div className="paper-card rounded-2xl p-5">
-                <div className="flex items-baseline justify-between mb-4">
-                  <h3 className="font-display text-lg font-extrabold">Menu Terlaris</h3>
-                  <span className="font-round text-xs text-sumi/40">人気</span>
-                </div>
-                <div className="space-y-3">
-                  {o.bestMenus.map((m, i) => {
-                    const max = o.bestMenus[0]?.qty || 1;
-                    return (
-                      <div key={m.name}>
-                        <div className="flex items-center justify-between text-sm mb-1">
-                          <span className="font-round font-bold text-sumi truncate flex items-center gap-1.5">
-                            <span className="text-shu font-display">{i + 1}</span> {m.name}
-                          </span>
-                          <span className="text-sumi/50 text-xs shrink-0">{m.qty}x</span>
-                        </div>
-                        <div className="h-2 rounded-full bg-sumi/5 overflow-hidden">
-                          <div className="h-full rounded-full bg-gradient-to-r from-shu to-kin" style={{ width: `${(m.qty / max) * 100}%` }} />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+              <Panel title="Menu Terlaris">
+                <TopMenuBarChart data={o.bestMenus} />
+              </Panel>
             </div>
 
-            {/* per outlet */}
-            <div className="paper-card rounded-2xl p-5">
-              <div className="flex items-baseline justify-between mb-4">
-                <h3 className="font-display text-lg font-extrabold">Performa per Outlet</h3>
-                <span className="font-round text-xs text-sumi/40">店舗別</span>
-              </div>
-              <div className="grid sm:grid-cols-2 gap-3">
-                {o.perOutlet.map((p, i) => {
-                  const max = o.perOutlet[0]?.revenue || 1;
-                  return (
-                    <div key={p.id} className="rounded-xl bg-washi/60 ring-1 ring-sumi/5 p-4">
-                      <div className="flex items-center justify-between">
-                        <p className="font-round font-bold text-sm flex items-center gap-2">
-                          {i === 0 && <span className="text-kin">🏆</span>}
-                          {p.name}
-                        </p>
-                        <span className="font-display font-extrabold text-shu">{rupiahShort(p.revenue)}</span>
-                      </div>
-                      <div className="mt-2 h-2.5 rounded-full bg-sumi/5 overflow-hidden">
-                        <div className="h-full rounded-full bg-gradient-to-r from-matcha to-kin" style={{ width: `${(p.revenue / max) * 100}%` }} />
-                      </div>
-                      <div className="mt-2 flex gap-4 text-xs text-sumi/50">
-                        <span>{p.orders} order</span>
-                        <span>{p.chats} chat</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+            <Panel title="Performa per Outlet" bodyClassName="p-0">
+              {o.perOutlet.length === 0 ? (
+                <p className="p-5 text-sm text-gray-5">Belum ada data outlet.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm min-w-[520px]">
+                    <thead>
+                      <tr className="border-b border-gray-4 text-left">
+                        <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-5">Outlet</th>
+                        <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-5 text-right">Revenue</th>
+                        <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-5 text-right">Order</th>
+                        <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-5 text-right">Chat</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {o.perOutlet.map((p, i) => (
+                        <tr key={p.id} className="border-b border-gray-4 last:border-0 hover:bg-gray-3/60 transition">
+                          <td className="px-5 py-3.5">
+                            <span className="flex items-center gap-2 font-medium text-dark-2">
+                              {i === 0 && <IconTrophy className="h-4 w-4 text-warning" />}
+                              <span className="truncate">{p.name}</span>
+                            </span>
+                          </td>
+                          <td className="px-5 py-3.5 text-right font-semibold text-dark-1 tabular-nums">{rupiahShort(p.revenue)}</td>
+                          <td className="px-5 py-3.5 text-right text-gray-5 tabular-nums">{p.orders}</td>
+                          <td className="px-5 py-3.5 text-right text-gray-5 tabular-nums">{p.chats}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </Panel>
           </>
         )}
-      </div>
+      </PageBody>
     </div>
   );
 }
 
-function BigStat({ label, jp, value, accent }: { label: string; jp: string; value: string; accent?: boolean }) {
+function SummaryCard({
+  label,
+  value,
+  Icon,
+  accent,
+}: {
+  label: string;
+  value: string;
+  Icon: (p: { className?: string }) => React.ReactElement;
+  /** Fills the card — reserved for the headline revenue figure. */
+  accent?: boolean;
+}) {
+  if (accent) {
+    return (
+      <div className="rounded-xl bg-primary p-4 text-white shadow-sm">
+        <div className="flex items-center gap-2 text-white/80">
+          <Icon className="h-4 w-4" />
+          <p className="text-xs font-medium truncate">{label}</p>
+        </div>
+        <p className="mt-2 text-xl font-semibold tracking-tight tabular-nums">{value}</p>
+      </div>
+    );
+  }
   return (
-    <div className="paper-card rounded-2xl p-4 relative overflow-hidden">
-      <div className="absolute -right-2 -top-3 font-display text-5xl opacity-[0.06]">{jp}</div>
-      <p className="text-xs font-semibold text-sumi/50">{label}</p>
-      <p className={`mt-1 font-display text-2xl font-extrabold ${accent ? "text-shu" : "text-sumi"}`}>{value}</p>
+    <div className="rounded-xl border border-gray-6 bg-white p-4">
+      <div className="flex items-center gap-2 text-gray-5">
+        <Icon className="h-4 w-4" />
+        <p className="text-xs font-medium truncate">{label}</p>
+      </div>
+      <p className="mt-2 text-xl font-semibold tracking-tight text-dark-1 tabular-nums">{value}</p>
     </div>
   );
 }
 
-function MonthlyBars({ data }: { data: { date: string; total: number }[] }) {
-  const max = Math.max(...data.map((d) => d.total), 1);
-  return (
-    <div>
-      <div className="flex items-end gap-1 h-40">
-        {data.map((d, i) => (
-          <div key={d.date} className="flex-1 group relative flex flex-col justify-end h-full">
-            <div
-              className="w-full rounded-t bg-gradient-to-t from-shu/70 to-shu group-hover:from-shu group-hover:to-shu-light transition-all"
-              style={{ height: `${Math.max((d.total / max) * 100, 2)}%` }}
-            />
-            {d.total > 0 && (
-              <div className="absolute -top-7 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition bg-sumi text-washi text-[10px] rounded px-1.5 py-0.5 whitespace-nowrap z-10">
-                {rupiahShort(d.total)}
-              </div>
-            )}
-            {i % 5 === 0 && <span className="text-[9px] text-sumi/30 text-center mt-1">{d.date.slice(8)}</span>}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}

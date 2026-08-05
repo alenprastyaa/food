@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui";
+import { IconStore, IconMapPin, IconPhone, IconClock, IconPencil } from "@/components/icons";
 import { PageHeader } from "@/components/dash";
 import { isOutletOpen } from "@/lib/outlet";
 
@@ -37,7 +38,7 @@ export default function OutletsManager() {
 
   return (
     <div>
-      <PageHeader title="Outlet" jp="店舗" subtitle="Kelola cabang bisnismu">
+      <PageHeader title="Outlet" subtitle="Kelola cabang bisnismu">
         <Button onClick={() => { setEditing(null); setShowForm(true); }}>+ Outlet Baru</Button>
       </PageHeader>
 
@@ -45,22 +46,22 @@ export default function OutletsManager() {
         {outlets.map((o) => (
           <div key={o.id} className="paper-card rounded-2xl overflow-hidden">
             <div className="bg-sumi text-washi p-4 relative overflow-hidden">
-              <div className="absolute -right-3 -top-4 font-display text-6xl text-shu/20">店</div>
+              <div className="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-lg bg-primary-light text-primary"><IconStore className="h-5 w-5" /></div>
               <div className="flex items-center justify-between relative">
                 <span className="hanko h-9 w-9 text-sm">{o.name.replace("Nashi Katsu — ", "").charAt(0)}</span>
-                <button onClick={() => toggle(o)} className={`text-[11px] font-bold rounded-full px-2.5 py-1 ${o.isActive ? "bg-emerald-500/90 text-white" : "bg-washi/20 text-washi/60"}`}>
+                <button onClick={() => toggle(o)} className={`text-[11px] font-semibold rounded-full px-2.5 py-1 ${o.isActive ? "bg-emerald-500/90 text-white" : "bg-washi/20 text-washi/60"}`}>
                   {o.isActive ? "● Aktif" : "○ Nonaktif"}
                 </button>
               </div>
-              <h3 className="font-display text-lg font-extrabold mt-3 relative">{o.name}</h3>
+              <h3 className="font-display text-lg font-bold mt-3 relative">{o.name}</h3>
             </div>
             <div className="p-4 space-y-1.5">
-              <p className="text-sm text-sumi/60">📍 {o.address}</p>
-              <p className="text-sm text-sumi/60">📞 {o.phone}</p>
+              <p className="flex items-center gap-2 text-sm text-gray-5"><IconMapPin className="h-4 w-4 shrink-0 text-gray-2" />{o.address}</p>
+              <p className="flex items-center gap-2 text-sm text-gray-5"><IconPhone className="h-4 w-4 shrink-0 text-gray-2" />{o.phone}</p>
               {o.openTime && o.closeTime && (
                 <p className="text-sm text-sumi/60">
-                  🕒 {o.openTime}–{o.closeTime}{" "}
-                  <span className={`ml-1 text-[11px] font-bold ${isOutletOpen(o) ? "text-emerald-600" : "text-rose-500"}`}>
+                  <IconClock className="h-3.5 w-3.5" /> {o.openTime}–{o.closeTime}{" "}
+                  <span className={`ml-1 text-[11px] font-semibold ${isOutletOpen(o) ? "text-emerald-600" : "text-rose-500"}`}>
                     ({isOutletOpen(o) ? "Buka sekarang" : "Tutup sekarang"})
                   </span>
                 </p>
@@ -70,14 +71,14 @@ export default function OutletsManager() {
                 <p className="text-sm text-sumi/60">⭐ {(o.ratings.reduce((s, r) => s + r.stars, 0) / o.ratings.length).toFixed(1)} ({o.ratings.length} rating)</p>
               )}
               {o.latitude != null && (
-                <a href={`https://www.google.com/maps/search/?api=1&query=${o.latitude},${o.longitude}`} target="_blank" className="text-xs text-shu font-bold hover:underline inline-block">Lihat di peta →</a>
+                <a href={`https://www.google.com/maps/search/?api=1&query=${o.latitude},${o.longitude}`} target="_blank" className="text-xs text-shu font-semibold hover:underline inline-block">Lihat di peta →</a>
               )}
               <div className="flex gap-4 pt-2 mt-2 border-t border-sumi/10 text-center">
                 <Metric label="Menu" value={o._count.menus} />
                 <Metric label="Kasir" value={o._count.users} />
                 <Metric label="Order" value={o._count.orders} />
               </div>
-              <button onClick={() => { setEditing(o); setShowForm(true); }} className="mt-2 w-full text-sm font-round font-bold text-sumi/60 hover:text-shu rounded-lg py-2 hover:bg-shu/5 transition">✎ Edit Outlet</button>
+              <button onClick={() => { setEditing(o); setShowForm(true); }} className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-gray-4 py-2 text-sm font-semibold text-gray-8 hover:border-primary hover:text-primary transition"><IconPencil className="h-4 w-4" /> Edit Outlet</button>
             </div>
           </div>
         ))}
@@ -91,7 +92,7 @@ export default function OutletsManager() {
 function Metric({ label, value }: { label: string; value: number }) {
   return (
     <div className="flex-1">
-      <p className="font-display text-lg font-extrabold text-sumi">{value}</p>
+      <p className="font-display text-lg font-bold text-sumi">{value}</p>
       <p className="text-[10px] text-sumi/40">{label}</p>
     </div>
   );
@@ -146,7 +147,7 @@ function OutletForm({ outlet, onClose, onSaved }: { outlet: Outlet | null; onClo
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-sumi/40 backdrop-blur-sm p-4" onClick={onClose}>
       <div className="paper-card rounded-3xl p-6 w-full max-w-md animate-fade-up" onClick={(e) => e.stopPropagation()}>
-        <h2 className="font-display text-xl font-extrabold mb-4">{outlet ? "Edit Outlet" : "Outlet Baru"} <span className="font-round text-shu/60 text-sm">店舗</span></h2>
+        <h2 className="font-display text-xl font-bold mb-4">{outlet ? "Edit Outlet" : "Outlet Baru"}</h2>
         <div className="space-y-3">
           <F label="Nama Outlet"><input value={f.name} onChange={(e) => set("name", e.target.value)} className="in" placeholder="Nashi Katsu — Cabang" /></F>
           <F label="Telepon"><input value={f.phone} onChange={(e) => set("phone", e.target.value)} className="in" placeholder="0812-…" /></F>
@@ -155,9 +156,9 @@ function OutletForm({ outlet, onClose, onSaved }: { outlet: Outlet | null; onClo
             type="button"
             onClick={useCurrentLocation}
             disabled={locating}
-            className="w-full text-sm font-round font-bold text-shu bg-shu/10 rounded-xl py-2.5 hover:bg-shu/20 transition disabled:opacity-50"
+            className="w-full text-sm font-round font-semibold text-shu bg-shu/10 rounded-xl py-2.5 hover:bg-shu/20 transition disabled:opacity-50"
           >
-            {locating ? "Mengambil lokasi…" : "📍 Gunakan Lokasi Saat Ini"}
+            {locating ? "Mengambil lokasi…" : "Gunakan Lokasi Saat Ini"}
           </button>
           <div className="grid grid-cols-2 gap-3">
             <F label="Latitude"><input value={f.latitude} onChange={(e) => set("latitude", e.target.value)} className="in" placeholder="-7.79" /></F>

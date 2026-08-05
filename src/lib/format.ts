@@ -19,17 +19,17 @@ export const timeAgo = (d: Date | string) => {
 export const clock = (d: Date | string) =>
   new Date(d).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
 
-export const ORDER_STATUS: Record<string, { label: string; jp: string; tone: string }> = {
-  DRAFT: { label: "Draft", jp: "下書き", tone: "slate" },
-  WAITING_CONFIRMATION: { label: "Menunggu Konfirmasi", jp: "確認待ち", tone: "amber" },
-  WAITING_PAYMENT: { label: "Menunggu Pembayaran", jp: "支払い待ち", tone: "amber" },
-  WAITING_PAYMENT_VERIFICATION: { label: "Verifikasi Bayar", jp: "確認中", tone: "violet" },
-  PAID: { label: "Lunas", jp: "支払済", tone: "emerald" },
-  QUEUED: { label: "Antrian", jp: "待機列", tone: "sky" },
-  COOKING: { label: "Dimasak", jp: "調理中", tone: "orange" },
-  READY: { label: "Siap", jp: "準備完了", tone: "emerald" },
-  COMPLETED: { label: "Selesai", jp: "完了", tone: "green" },
-  CANCELLED: { label: "Dibatalkan", jp: "取消", tone: "rose" },
+export const ORDER_STATUS: Record<string, { label: string; tone: string }> = {
+  DRAFT: { label: "Draft", tone: "slate" },
+  WAITING_CONFIRMATION: { label: "Menunggu Konfirmasi", tone: "amber" },
+  WAITING_PAYMENT: { label: "Menunggu Pembayaran", tone: "amber" },
+  WAITING_PAYMENT_VERIFICATION: { label: "Verifikasi Bayar", tone: "violet" },
+  PAID: { label: "Lunas", tone: "emerald" },
+  QUEUED: { label: "Antrian", tone: "sky" },
+  COOKING: { label: "Dimasak", tone: "orange" },
+  READY: { label: "Siap", tone: "emerald" },
+  COMPLETED: { label: "Selesai", tone: "green" },
+  CANCELLED: { label: "Dibatalkan", tone: "rose" },
 };
 
 export const PAYMENT_STATUS: Record<string, { label: string; tone: string }> = {

@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { usePoll, fileToDataUrl } from "@/lib/hooks";
+import { usePoll } from "@/lib/hooks";
+import { uploadImage } from "@/lib/upload";
 import { MessageBubble, OrderLinkCard, Msg } from "@/components/chat";
 import { Logo } from "@/components/ui";
 
@@ -19,6 +20,7 @@ export default function BuyerChat({ conversationId, outletName, buyerName }: { c
   const { data, reload } = usePoll<ConvData>(`/api/chat/${conversationId}`, 2500);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
+  const [sendingImg, setSendingImg] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -46,9 +48,15 @@ export default function BuyerChat({ conversationId, outletName, buyerName }: { c
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const url = await fileToDataUrl(file);
-    await send(url, "image");
-    if (fileRef.current) fileRef.current.value = "";
+    setSendingImg(true);
+    try {
+      await send(await uploadImage(file), "image");
+    } catch (er) {
+      alert(er instanceof Error ? er.message : "Gagal mengunggah gambar.");
+    } finally {
+      setSendingImg(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
   }
 
   return (
@@ -58,9 +66,9 @@ export default function BuyerChat({ conversationId, outletName, buyerName }: { c
         <div className="noren h-1.5 w-full" />
         <div className="px-4 py-3 flex items-center gap-3">
           <Link href={`/`} className="text-washi/70 hover:text-washi text-xl">‹</Link>
-          <span className="hanko h-9 w-9 text-base">店</span>
+          <span className="hanko h-9 w-9 text-base">🏪</span>
           <div className="min-w-0 flex-1">
-            <p className="font-round font-bold text-sm truncate">{outletName}</p>
+            <p className="font-round font-semibold text-sm truncate">{outletName}</p>
             <p className="text-[11px] text-emerald-300 flex items-center gap-1">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" /> Kasir online
             </p>

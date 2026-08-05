@@ -17,12 +17,12 @@ export default async function PromoPage() {
       <div className="noren h-2 w-full" />
       <div className="mx-auto max-w-5xl px-5 py-8">
         <div className="flex items-center justify-between mb-6">
-          <Logo size={38} />
-          <Link href="/" className="text-sm font-round font-bold text-sumi/60 hover:text-shu">← Beranda</Link>
+          <Logo size={46} />
+          <Link href="/" className="text-sm font-round font-semibold text-sumi/60 hover:text-shu">← Beranda</Link>
         </div>
         <div className="text-center mb-8">
-          <p className="font-round text-shu text-sm tracking-[0.3em]">セール中</p>
-          <h1 className="font-display text-4xl font-extrabold mt-1">Menu Promo</h1>
+          <p className="font-round text-shu text-sm tracking-[0.3em]">PROMO SPESIAL</p>
+          <h1 className="font-display text-4xl font-bold mt-1">Menu Promo</h1>
           <p className="text-sumi/50 mt-2">Menu pilihan dengan harga spesial, tersedia di outlet-outlet berikut.</p>
         </div>
         {menus.length === 0 ? (
@@ -33,10 +33,10 @@ export default async function PromoPage() {
               <Link key={m.id} href={`/o/${m.outletId}?add=${m.id}`} className="paper-card rounded-2xl overflow-hidden hover:-translate-y-1 transition group block">
                 <div className="relative">
                   <MenuImage image={m.image} category={m.category} big className="aspect-square w-full group-hover:scale-105 transition-transform" />
-                  <span className="absolute top-2 left-2 text-[10px] font-round font-bold bg-shu text-white rounded-full px-2 py-0.5">PROMO</span>
+                  <span className="absolute top-2 left-2 text-[10px] font-round font-semibold bg-shu text-white rounded-full px-2 py-0.5">PROMO</span>
                 </div>
                 <div className="p-3">
-                  <p className="font-round font-bold text-sm leading-snug line-clamp-2">{m.name}</p>
+                  <p className="font-round font-semibold text-sm leading-snug line-clamp-2">{m.name}</p>
                   <p className="text-[11px] text-sumi/40 mt-0.5">{m.outlet.name.replace("Nashi Katsu — ", "")}</p>
                   <div className="flex items-center gap-2 mt-2">
                     {m.promoPrice != null && m.promoPrice < m.price ? (

@@ -3,7 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 import { rupiah } from "@/lib/format";
 import { Button, MenuImage } from "@/components/ui";
 import { PageHeader, EmptyState } from "@/components/dash";
-import { fileToDataUrl } from "@/lib/hooks";
+import { IconUtensils, IconPlus, IconX } from "@/components/icons";
+import { uploadImage } from "@/lib/upload";
 
 type MenuOption = { id: string; name: string; priceDelta: number };
 type MenuOptionGroup = { id: string; name: string; required: boolean; multiple: boolean; options: MenuOption[] };
@@ -23,7 +24,13 @@ type Menu = {
 type Outlet = { id: string; name: string };
 
 const EMOJIS = ["🍱", "🍤", "🍗", "🍛", "🍚", "🍥", "🍿", "🥚", "🔥", "🍢", "🥟", "🐙", "🍘", "🍵", "🍳", "🌶️", "🥢", "🍜"];
-const CATS = ["Katsu", "Donburi", "Snack", "Drink", "Extra"];
+const DEFAULT_CATS = ["Katsu", "Donburi", "Snack", "Drink", "Extra"];
+
+/** Defaults first (in order), then any custom category the owner has created. */
+function orderCategories(found: string[]) {
+  const extra = found.filter((c) => !DEFAULT_CATS.includes(c)).sort((a, b) => a.localeCompare(b, "id"));
+  return [...DEFAULT_CATS, ...extra];
+}
 
 export default function MenuManager({ outlets }: { outlets: Outlet[] }) {
   const [outletId, setOutletId] = useState(outlets[0]?.id ?? "");
@@ -49,6 +56,9 @@ export default function MenuManager({ outlets }: { outlets: Outlet[] }) {
     return g;
   }, [menus]);
 
+  // Derived from actual menus, so a custom category never hides its items.
+  const allCats = useMemo(() => orderCategories(Object.keys(byCat)), [byCat]);
+
   async function toggle(m: Menu) {
     setMenus((p) => p.map((x) => (x.id === m.id ? { ...x, isAvailable: !x.isAvailable } : x)));
     await fetch(`/api/menu/${m.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isAvailable: !m.isAvailable }) });
@@ -61,14 +71,14 @@ export default function MenuManager({ outlets }: { outlets: Outlet[] }) {
 
   return (
     <div>
-      <PageHeader title="Menu" jp="メニュー" subtitle="Kelola menu tiap outlet">
+      <PageHeader title="Menu" subtitle="Kelola menu tiap outlet">
         <Button onClick={() => { setEditing(null); setShowForm(true); }}>+ Menu Baru</Button>
       </PageHeader>
 
       <div className="p-5 lg:p-8 space-y-5">
         <div className="flex items-center gap-3">
           <span className="text-sm text-sumi/50">Outlet:</span>
-          <select value={outletId} onChange={(e) => setOutletId(e.target.value)} className="rounded-xl border border-sumi/15 bg-paper px-4 py-2 text-sm font-round font-bold outline-none focus:border-shu">
+          <select value={outletId} onChange={(e) => setOutletId(e.target.value)} className="rounded-xl border border-sumi/15 bg-paper px-4 py-2 text-sm font-round font-semibold outline-none focus:border-shu">
             {outlets.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
           </select>
           <span className="text-sm text-sumi/40">{menus.length} item</span>
@@ -77,11 +87,11 @@ export default function MenuManager({ outlets }: { outlets: Outlet[] }) {
         {loading ? (
           <p className="text-sumi/40 text-sm">Memuat…</p>
         ) : menus.length === 0 ? (
-          <EmptyState icon="🍱" title="Belum ada menu" subtitle="Tambahkan menu pertama outlet ini." />
+          <EmptyState icon={<IconUtensils className="h-6 w-6" />} title="Belum ada menu" subtitle="Tambahkan menu pertama outlet ini." />
         ) : (
-          CATS.filter((c) => byCat[c]?.length).map((cat) => (
+          allCats.filter((c) => byCat[c]?.length).map((cat) => (
             <div key={cat}>
-              <h3 className="font-display text-lg font-extrabold text-sumi mb-2 flex items-center gap-2">
+              <h3 className="font-display text-lg font-bold text-sumi mb-2 flex items-center gap-2">
                 {cat} <span className="text-xs font-normal text-sumi/40">({byCat[cat].length})</span>
               </h3>
               <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-3">
@@ -89,21 +99,21 @@ export default function MenuManager({ outlets }: { outlets: Outlet[] }) {
                   <div key={m.id} className={`paper-card rounded-2xl p-3 flex gap-3 transition ${!m.isAvailable ? "opacity-55" : ""}`}>
                     <MenuImage image={m.image} category={m.category} className="h-16 w-16 rounded-xl shrink-0" />
                     <div className="min-w-0 flex-1">
-                      <p className="font-round font-bold text-sm truncate">{m.name}</p>
+                      <p className="font-round font-semibold text-sm truncate">{m.name}</p>
                       <p className="text-xs text-sumi/50 line-clamp-2">{m.description}</p>
-                      <p className="text-shu font-display font-extrabold text-sm mt-0.5">{rupiah(m.price)}</p>
+                      <p className="text-shu font-display font-bold text-sm mt-0.5">{rupiah(m.price)}</p>
                       <div className="flex items-center gap-2 mt-2 flex-wrap">
-                        <button onClick={() => toggle(m)} className={`text-[11px] font-bold rounded-full px-2 py-0.5 ${m.isAvailable ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-500"}`}>
+                        <button onClick={() => toggle(m)} className={`text-[11px] font-semibold rounded-full px-2 py-0.5 ${m.isAvailable ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-500"}`}>
                           {m.isAvailable ? "● Tersedia" : "○ Habis"}
                         </button>
                         {m.optionGroups.length > 0 && (
-                          <span className="text-[11px] font-bold rounded-full px-2 py-0.5 bg-violet-100 text-violet-700">{m.optionGroups.length} varian</span>
+                          <span className="text-[11px] font-semibold rounded-full px-2 py-0.5 bg-violet-100 text-violet-700">{m.optionGroups.length} varian</span>
                         )}
                         {m.isPromo && (
-                          <span className="text-[11px] font-bold rounded-full px-2 py-0.5 bg-shu/10 text-shu">🔥 Promo</span>
+                          <span className="text-[11px] font-semibold rounded-full px-2 py-0.5 bg-shu/10 text-shu">🔥 Promo</span>
                         )}
-                        <button onClick={() => { setEditing(m); setShowForm(true); }} className="text-[11px] font-bold text-sumi/50 hover:text-shu">Edit</button>
-                        <button onClick={() => remove(m)} className="text-[11px] font-bold text-rose-400 hover:text-rose-600">Hapus</button>
+                        <button onClick={() => { setEditing(m); setShowForm(true); }} className="text-[11px] font-semibold text-sumi/50 hover:text-shu">Edit</button>
+                        <button onClick={() => remove(m)} className="text-[11px] font-semibold text-rose-400 hover:text-rose-600">Hapus</button>
                       </div>
                     </div>
                   </div>
@@ -119,7 +129,7 @@ export default function MenuManager({ outlets }: { outlets: Outlet[] }) {
           outletId={outletId}
           menu={editing}
           emojis={EMOJIS}
-          cats={CATS}
+          cats={allCats}
           onClose={() => setShowForm(false)}
           onSaved={() => { setShowForm(false); load(); }}
         />
@@ -132,10 +142,13 @@ type GroupDraft = { name: string; required: boolean; multiple: boolean; options:
 
 function MenuForm({ outletId, menu, emojis, cats, onClose, onSaved }: { outletId: string; menu: Menu | null; emojis: string[]; cats: string[]; onClose: () => void; onSaved: () => void }) {
   const [name, setName] = useState(menu?.name ?? "");
-  const [category, setCategory] = useState(menu?.category ?? cats[0]);
+  const [category, setCategory] = useState(menu?.category ?? cats[0] ?? "Katsu");
+  const [newCat, setNewCat] = useState(false);
   const [price, setPrice] = useState(menu?.price ?? 0);
   const [description, setDescription] = useState(menu?.description ?? "");
   const [image, setImage] = useState(menu?.image ?? "🍱");
+  const [uploadingImg, setUploadingImg] = useState(false);
+  const [imgErr, setImgErr] = useState("");
   const [isPromo, setIsPromo] = useState(menu?.isPromo ?? false);
   const [promoPrice, setPromoPrice] = useState(menu?.promoPrice ?? 0);
   const [groups, setGroups] = useState<GroupDraft[]>(
@@ -166,8 +179,10 @@ function MenuForm({ outletId, menu, emojis, cats, onClose, onSaved }: { outletId
   async function save() {
     setErr("");
     if (!name.trim() || !price) return setErr("Nama & harga wajib.");
+    const cat = category.trim();
+    if (!cat) return setErr("Kategori wajib diisi.");
     setSaving(true);
-    const body = { outletId, name, category, price, description, image, isPromo, promoPrice: isPromo ? promoPrice || null : null };
+    const body = { outletId, name, category: cat, price, description, image, isPromo, promoPrice: isPromo ? promoPrice || null : null };
     const res = menu
       ? await fetch(`/api/menu/${menu.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
       : await fetch(`/api/menu`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -191,12 +206,45 @@ function MenuForm({ outletId, menu, emojis, cats, onClose, onSaved }: { outletId
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-sumi/40 backdrop-blur-sm p-0 sm:p-4" onClick={onClose}>
       <div className="paper-card rounded-t-[1.75rem] sm:rounded-3xl w-full max-w-md max-h-[90vh] flex flex-col animate-fade-up" onClick={(e) => e.stopPropagation()}>
-        <h2 className="font-display text-xl font-extrabold p-6 pb-0 shrink-0">{menu ? "Edit Menu" : "Menu Baru"} <span className="font-round text-shu/60 text-sm">献立</span></h2>
+        <h2 className="font-display text-xl font-bold p-6 pb-0 shrink-0">{menu ? "Edit Menu" : "Menu Baru"}</h2>
         <div className="flex-1 overflow-y-auto scroll-thin p-6 space-y-3">
           <Field label="Nama"><input value={name} onChange={(e) => setName(e.target.value)} className="in" /></Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Kategori">
-              <select value={category} onChange={(e) => setCategory(e.target.value)} className="in">{cats.map((c) => <option key={c}>{c}</option>)}</select>
+              {newCat ? (
+                <div className="flex gap-1.5">
+                  <input
+                    autoFocus
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    placeholder="Nama kategori baru"
+                    maxLength={40}
+                    className="in"
+                  />
+                  <button
+                    type="button"
+                    title="Batal"
+                    onClick={() => { setNewCat(false); setCategory(cats[0] ?? "Katsu"); }}
+                    className="shrink-0 rounded-lg border border-gray-4 px-2.5 text-gray-5 hover:border-primary hover:text-primary transition"
+                  >
+                    <IconX className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-1.5">
+                  <select value={category} onChange={(e) => setCategory(e.target.value)} className="in">
+                    {cats.map((c) => <option key={c}>{c}</option>)}
+                  </select>
+                  <button
+                    type="button"
+                    title="Tambah kategori baru"
+                    onClick={() => { setNewCat(true); setCategory(""); }}
+                    className="shrink-0 rounded-lg border border-gray-4 px-2.5 text-gray-8 hover:border-primary hover:text-primary transition"
+                  >
+                    <IconPlus className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
             </Field>
             <Field label="Harga (Rp)"><input type="number" value={price || ""} onChange={(e) => setPrice(Number(e.target.value))} className="in" /></Field>
           </div>
@@ -209,14 +257,19 @@ function MenuForm({ outletId, menu, emojis, cats, onClose, onSaved }: { outletId
                 <MenuImage image={image} category={category} className="h-full w-full" />
               </div>
               <div className="flex-1 space-y-1.5">
-                <label className="block rounded-lg border border-sumi/15 bg-washi/50 px-3 py-2 text-xs font-round font-bold text-center cursor-pointer hover:border-shu transition">
-                  📤 Unggah Foto Asli
-                  <input type="file" accept="image/*" hidden onChange={async (e) => {
+                <label className="block rounded-lg border border-gray-6 bg-white px-3 py-2 text-xs font-semibold text-center cursor-pointer hover:border-primary hover:text-primary transition">
+                  {uploadingImg ? "Mengunggah…" : "Unggah Foto Asli"}
+                  <input type="file" accept="image/*" hidden disabled={uploadingImg} onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (!file) return;
-                    setImage(await fileToDataUrl(file));
+                    setImgErr("");
+                    setUploadingImg(true);
+                    try { setImage(await uploadImage(file)); }
+                    catch (er) { setImgErr(er instanceof Error ? er.message : "Gagal mengunggah."); }
+                    finally { setUploadingImg(false); e.target.value = ""; }
                   }} />
                 </label>
+                {imgErr && <p className="text-[11px] font-medium text-primary">{imgErr}</p>}
                 {image?.startsWith("data:") || image?.startsWith("/") || image?.startsWith("http") ? (
                   <button onClick={() => setImage("🍱")} className="text-[11px] text-sumi/40 hover:text-shu">Hapus foto, pakai ikon</button>
                 ) : null}
@@ -243,7 +296,7 @@ function MenuForm({ outletId, menu, emojis, cats, onClose, onSaved }: { outletId
           <div>
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-sumi/60">Opsi / Varian (mis. Level Pedas, Tambahan)</span>
-              <button type="button" onClick={addGroup} className="text-xs font-bold text-shu hover:underline">+ Grup</button>
+              <button type="button" onClick={addGroup} className="text-xs font-semibold text-shu hover:underline">+ Grup</button>
             </div>
             <div className="mt-1.5 space-y-2.5 max-h-52 overflow-y-auto scroll-thin pr-1">
               {groups.map((g, gi) => (
@@ -284,7 +337,7 @@ function MenuForm({ outletId, menu, emojis, cats, onClose, onSaved }: { outletId
                         <button type="button" onClick={() => removeOption(gi, oi)} className="text-rose-400 hover:text-rose-600 text-xs px-1">✕</button>
                       </div>
                     ))}
-                    <button type="button" onClick={() => addOption(gi)} className="text-[11px] font-bold text-shu hover:underline">+ Opsi</button>
+                    <button type="button" onClick={() => addOption(gi)} className="text-[11px] font-semibold text-shu hover:underline">+ Opsi</button>
                   </div>
                 </div>
               ))}

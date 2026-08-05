@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui";
 import { PageHeader } from "@/components/dash";
-import { fileToDataUrl } from "@/lib/hooks";
+import { uploadImage } from "@/lib/upload";
 
 type Outlet = {
   id: string;
@@ -22,11 +22,11 @@ export default function QrisManager() {
 
   return (
     <div>
-      <PageHeader title="QRIS" jp="支払い" subtitle="Kelola QRIS statis pembayaran tiap outlet" />
+      <PageHeader title="QRIS" subtitle="Kelola QRIS statis pembayaran tiap outlet" />
       <div className="p-5 lg:p-8 grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
         {outlets.map((o) => (
           <div key={o.id} className="paper-card rounded-2xl p-5 text-center">
-            <h3 className="font-display font-extrabold text-sumi">{o.name}</h3>
+            <h3 className="font-display font-bold text-sumi">{o.name}</h3>
             <div className="mt-3 rounded-xl bg-white ring-1 ring-sumi/10 p-3 grid place-items-center aspect-square">
               {o.payment?.qrisImage ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -35,14 +35,14 @@ export default function QrisManager() {
                 <span className="text-sumi/30 text-sm">Belum ada QRIS</span>
               )}
             </div>
-            <p className="text-sm font-round font-bold mt-2">{o.payment?.ownerName ?? "—"}</p>
+            <p className="text-sm font-round font-semibold mt-2">{o.payment?.ownerName ?? "—"}</p>
             {o.payment?.notes && <p className="text-xs text-sumi/50 mt-1">{o.payment.notes}</p>}
             <div className="flex gap-2 mt-3">
               {o.payment?.qrisImage && (
                 <a
                   href={o.payment.qrisImage}
                   download={`qris-${o.name}.png`}
-                  className="flex-1 inline-flex items-center justify-center rounded-xl ring-1 ring-sumi/15 text-sumi text-sm font-round font-bold py-2.5 hover:bg-sumi/5 transition"
+                  className="flex-1 inline-flex items-center justify-center rounded-xl ring-1 ring-sumi/15 text-sumi text-sm font-round font-semibold py-2.5 hover:bg-sumi/5 transition"
                 >
                   ⬇ Unduh
                 </a>
@@ -59,6 +59,8 @@ export default function QrisManager() {
 
 function QrisForm({ outlet, onClose, onSaved }: { outlet: Outlet; onClose: () => void; onSaved: () => void }) {
   const [qris, setQris] = useState<string | null>(outlet.payment?.qrisImage ?? null);
+  const [uploadingQris, setUploadingQris] = useState(false);
+  const [qrisErr, setQrisErr] = useState("");
   const [ownerName, setOwnerName] = useState(outlet.payment?.ownerName ?? "NASHI KATSU FOOD");
   const [notes, setNotes] = useState(outlet.payment?.notes ?? "");
   const [saving, setSaving] = useState(false);
@@ -66,7 +68,11 @@ function QrisForm({ outlet, onClose, onSaved }: { outlet: Outlet; onClose: () =>
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    setQris(await fileToDataUrl(file));
+    setQrisErr("");
+    setUploadingQris(true);
+    try { setQris(await uploadImage(file)); }
+    catch (er) { setQrisErr(er instanceof Error ? er.message : "Gagal mengunggah."); }
+    finally { setUploadingQris(false); }
   }
 
   async function save() {
@@ -83,7 +89,7 @@ function QrisForm({ outlet, onClose, onSaved }: { outlet: Outlet; onClose: () =>
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-sumi/40 backdrop-blur-sm p-4" onClick={onClose}>
       <div className="paper-card rounded-3xl p-6 w-full max-w-md animate-fade-up" onClick={(e) => e.stopPropagation()}>
-        <h2 className="font-display text-xl font-extrabold mb-4">QRIS · {outlet.name}</h2>
+        <h2 className="font-display text-xl font-bold mb-4">QRIS · {outlet.name}</h2>
         <label className="block">
           <span className="text-xs font-semibold text-sumi/60">Gambar QRIS</span>
           <div className="mt-1 rounded-xl border-2 border-dashed border-sumi/20 p-4 grid place-items-center cursor-pointer hover:border-shu transition bg-washi/40 aspect-square">
@@ -91,10 +97,11 @@ function QrisForm({ outlet, onClose, onSaved }: { outlet: Outlet; onClose: () =>
               // eslint-disable-next-line @next/next/no-img-element
               <img src={qris} alt="qris" className="max-h-52 object-contain" />
             ) : (
-              <span className="text-sm text-sumi/40">📤 Unggah gambar QRIS</span>
+              <span className="text-sm text-gray-5">{uploadingQris ? "Mengunggah…" : "Unggah gambar QRIS"}</span>
             )}
-            <input type="file" accept="image/*" hidden onChange={onFile} />
+            <input type="file" accept="image/*" hidden disabled={uploadingQris} onChange={onFile} />
           </div>
+          {qrisErr && <p className="mt-1.5 text-[11px] font-medium text-primary">{qrisErr}</p>}
         </label>
         <div className="space-y-3 mt-3">
           <label className="block"><span className="text-xs font-semibold text-sumi/60">Nama Merchant</span>
